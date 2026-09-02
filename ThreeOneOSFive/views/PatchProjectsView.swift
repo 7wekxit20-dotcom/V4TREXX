@@ -4,8 +4,7 @@ import UniformTypeIdentifiers
 
 private struct PatchFileUTTypes {
     static let v4rtexx = UTType(filenameExtension: "v4rtexx") ?? UTType(importedAs: "com.v4rtexx.patch-package")
-    static let legacy3105 = UTType(filenameExtension: "3105") ?? .data
-    static let allowedTypes: [UTType] = [v4rtexx, legacy3105, .data, .item]
+    static let allowedTypes: [UTType] = [v4rtexx]
 }
 
 struct PatchProjectsView: View {
@@ -68,10 +67,16 @@ struct PatchProjectsView: View {
                 allowsMultipleSelection: false
             ) { result in
                 if case .success(let urls) = result, let url = urls.first {
-                    store.importPackage(at: url)
-                    selectedPackagePath = url.path
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        store.reload()
+                    let accessing = url.startAccessingSecurityScopedResource()
+                    defer {
+                        if accessing { url.stopAccessingSecurityScopedResource() }
+                    }
+                    if let data = try? Data(contentsOf: url) {
+                        _ = store.importPackage(data: data)
+                        selectedPackagePath = url.path
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            store.reload()
+                        }
                     }
                 }
             }
@@ -232,7 +237,6 @@ struct PatchProjectsView: View {
                     selectedPackagePath = item.packageURL.path
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    // ELEGANT REDESIGNED DELETE BUTTON
                     Button(role: .destructive) {
                         store.delete(item)
                         if selectedPackagePath == item.packageURL.path {
@@ -243,7 +247,6 @@ struct PatchProjectsView: View {
                     }
                     .tint(Color.red)
 
-                    // ELEGANT REDESIGNED EXPORT BUTTON
                     Button {
                         exportPackage(url: item.packageURL)
                     } label: {
@@ -268,7 +271,6 @@ struct PatchProjectsView: View {
     }
 }
 
-// SLEEK BLACK & WHITE PACKAGE ROW CARD
 struct PackageRowCard: View {
     let item: PatchLibraryItem
     let isSelected: Bool

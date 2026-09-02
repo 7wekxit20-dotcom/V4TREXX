@@ -1,12 +1,13 @@
 import SwiftUI
+import UIKit
 
 struct InjectView: View {
     @Environment(\.appLanguage) private var language
     @EnvironmentObject private var store: PatchProjectStore
-    @AppStorage("v4rtexx.selected_game") private var selectedGame = "com.dts.freefireth" // Free Fire or Free Fire Max
+    @AppStorage("v4rtexx.selected_game") private var selectedGame = "com.dts.freefireth"
     @AppStorage("v4rtexx.selected_package") private var selectedPackagePath = ""
-    @AppStorage("v4rtexx.is_injected") private var isInjected = false
     @State private var isProcessing = false
+    @State private var isInjected = false
     @State private var showSuccessAlert = false
     @State private var alertMessage = ""
     let onOpenSettings: () -> Void
@@ -39,11 +40,11 @@ struct InjectView: View {
                             HStack {
                                 Text("ACTIVE GAME PROFILE")
                                     .font(.caption2.weight(.bold))
-                                    .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
+                                    .foregroundStyle(Color(white: 0.6))
                                 Spacer()
                                 Image(systemName: "arrow.clockwise")
                                     .font(.system(size: 14, weight: .semibold))
-                                    .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
+                                    .foregroundStyle(Color(white: 0.6))
                             }
 
                             HStack(spacing: 14) {
@@ -55,7 +56,7 @@ struct InjectView: View {
                                                 .scaledToFill()
                                         } else {
                                             Image(systemName: "bolt.shield.fill")
-                                                .foregroundStyle(Color(red: 56/255, green: 189/255, blue: 248/255))
+                                                .foregroundStyle(.white)
                                         }
                                     } else {
                                         if let image = UIImage(named: "FreeFireLogo") ?? UIImage(contentsOfFile: "free fire.jpg") {
@@ -64,7 +65,7 @@ struct InjectView: View {
                                                 .scaledToFill()
                                         } else {
                                             Image(systemName: "flame.fill")
-                                                .foregroundStyle(Color(red: 56/255, green: 189/255, blue: 248/255))
+                                                .foregroundStyle(.white)
                                         }
                                     }
                                 }
@@ -77,37 +78,37 @@ struct InjectView: View {
                                         .foregroundStyle(.white)
                                     Text(selectedGame)
                                         .font(.caption2.monospaced())
-                                        .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
+                                        .foregroundStyle(Color(white: 0.6))
                                 }
                             }
                         }
                         .padding(16)
-                        .background(Color(red: 22/255, green: 30/255, blue: 46/255))
+                        .background(Color(white: 0.08))
                         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                                .stroke(Color.white.opacity(0.12), lineWidth: 1)
                         )
 
-                        // TARGET DETAILS CARD (Storage Removed per Request)
+                        // TARGET DETAILS CARD
                         VStack(alignment: .leading, spacing: 14) {
                             Text("TARGET DETAILS")
                                 .font(.caption2.weight(.bold))
-                                .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
+                                .foregroundStyle(Color(white: 0.6))
 
                             Text("Live container information")
                                 .font(.caption)
-                                .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
+                                .foregroundStyle(Color(white: 0.6))
                                 .padding(.top, -6)
 
-                            // Row 1: V4RTEXX packages
+                            // Row 1: Selected Package
                             HStack(spacing: 14) {
                                 ZStack {
                                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .fill(Color(red: 30/255, green: 41/255, blue: 59/255))
+                                        .fill(Color(white: 0.18))
                                         .frame(width: 38, height: 38)
                                     Image(systemName: "cube.fill")
-                                        .foregroundStyle(Color(red: 56/255, green: 189/255, blue: 248/255))
+                                        .foregroundStyle(.white)
                                 }
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("Selected Package")
@@ -115,22 +116,22 @@ struct InjectView: View {
                                         .foregroundStyle(.white)
                                     Text(selectedPackageName)
                                         .font(.caption.weight(.medium))
-                                        .foregroundStyle(Color(red: 56/255, green: 189/255, blue: 248/255))
+                                        .foregroundStyle(Color(white: 0.7))
                                 }
                                 Spacer()
                             }
                             .padding(12)
-                            .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+                            .background(Color(white: 0.12))
                             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
                             // Row 2: License Gate
                             HStack(spacing: 14) {
                                 ZStack {
                                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .fill(Color(red: 30/255, green: 41/255, blue: 59/255))
+                                        .fill(Color(white: 0.18))
                                         .frame(width: 38, height: 38)
                                     Image(systemName: "key.fill")
-                                        .foregroundStyle(Color(red: 56/255, green: 189/255, blue: 248/255))
+                                        .foregroundStyle(.white)
                                 }
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("License gate")
@@ -143,30 +144,30 @@ struct InjectView: View {
                                 Spacer()
                             }
                             .padding(12)
-                            .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+                            .background(Color(white: 0.12))
                             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         }
                         .padding(16)
-                        .background(Color(red: 22/255, green: 30/255, blue: 46/255))
+                        .background(Color(white: 0.08))
                         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                                .stroke(Color.white.opacity(0.12), lineWidth: 1)
                         )
 
                         // AUTO-DETECTED SELECTION DISPLAY
                         VStack(alignment: .leading, spacing: 12) {
                             Text("AUTO-DETECTED PACKAGE")
                                 .font(.caption2.weight(.bold))
-                                .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
+                                .foregroundStyle(Color(white: 0.6))
 
                             HStack(spacing: 12) {
                                 ZStack {
                                     RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .fill(Color(red: 56/255, green: 189/255, blue: 248/255).opacity(0.2))
+                                        .fill(Color(white: 0.2))
                                         .frame(width: 40, height: 40)
                                     Image(systemName: "shield.fill")
-                                        .foregroundStyle(Color(red: 56/255, green: 189/255, blue: 248/255))
+                                        .foregroundStyle(.white)
                                 }
 
                                 VStack(alignment: .leading, spacing: 2) {
@@ -175,21 +176,21 @@ struct InjectView: View {
                                         .foregroundStyle(.white)
                                     Text("Chosen from Library")
                                         .font(.caption2.weight(.medium))
-                                        .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
+                                        .foregroundStyle(Color(white: 0.6))
                                 }
 
                                 Spacer()
 
                                 Image(systemName: "checkmark.circle.fill")
                                     .font(.system(size: 20, weight: .bold))
-                                    .foregroundStyle(Color(red: 56/255, green: 189/255, blue: 248/255))
+                                    .foregroundStyle(.white)
                             }
                             .padding(14)
-                            .background(Color(red: 30/255, green: 58/255, blue: 90/255))
+                            .background(Color(white: 0.14))
                             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .stroke(Color(red: 56/255, green: 189/255, blue: 248/255), lineWidth: 1.5)
+                                    .stroke(Color.white, lineWidth: 1.5)
                             )
                         }
 
@@ -198,12 +199,12 @@ struct InjectView: View {
                             HStack {
                                 Text("ACTION")
                                     .font(.caption2.weight(.bold))
-                                    .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
+                                    .foregroundStyle(Color(white: 0.6))
                                 Spacer()
                             }
                             Text(isInjected ? "Container modified. You can restore original files anytime." : "Backups are automatically created before replacement")
                                 .font(.caption)
-                                .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
+                                .foregroundStyle(Color(white: 0.6))
                                 .frame(maxWidth: .infinity, alignment: .leading)
 
                             if !isInjected {
@@ -223,20 +224,13 @@ struct InjectView: View {
                                     .font(.headline)
                                     .foregroundStyle(.black)
                                     .frame(maxWidth: .infinity, minHeight: 52)
-                                    .background(
-                                        LinearGradient(
-                                            colors: [Color(red: 56/255, green: 189/255, blue: 248/255), Color(red: 14/255, green: 165/255, blue: 233/255)],
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
+                                    .background(Color.white)
                                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                                    .shadow(color: Color(red: 56/255, green: 189/255, blue: 248/255).opacity(0.35), radius: 12, x: 0, y: 6)
+                                    .shadow(color: Color.white.opacity(0.25), radius: 10, x: 0, y: 4)
                                 }
                                 .buttonStyle(.plain)
                                 .disabled(isProcessing)
                             } else {
-                                // NEW BUTTON APPEARS WHEN INJECTED: RESTORE ORIGINAL
                                 VStack(spacing: 10) {
                                     HStack(spacing: 6) {
                                         Image(systemName: "checkmark.seal.fill")
@@ -251,7 +245,7 @@ struct InjectView: View {
                                         HStack(spacing: 8) {
                                             if isProcessing {
                                                 ProgressView()
-                                                    .tint(.white)
+                                                    .tint(.black)
                                             } else {
                                                 Image(systemName: "arrow.triangle.2.circlepath")
                                                 Text("Restore Original Files")
@@ -259,18 +253,17 @@ struct InjectView: View {
                                             }
                                         }
                                         .font(.headline)
-                                        .foregroundStyle(.white)
+                                        .foregroundStyle(.black)
                                         .frame(maxWidth: .infinity, minHeight: 52)
-                                        .background(Color(red: 220/255, green: 38/255, blue: 38/255))
+                                        .background(Color.white)
                                         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                                        .shadow(color: Color.red.opacity(0.35), radius: 12, x: 0, y: 6)
+                                        .shadow(color: Color.white.opacity(0.25), radius: 10, x: 0, y: 4)
                                     }
                                     .buttonStyle(.plain)
                                     .disabled(isProcessing)
                                 }
                             }
                         }
-                        .padding(.top, 8)
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 16)
@@ -323,7 +316,6 @@ struct InjectView: View {
                     if let receipt = DevicePatchService.latestReceipt(projectID: proj.id) {
                         try DevicePatchService.restore(receipt: receipt, allowChangedTargets: true)
                     } else {
-                        // Apply and restore as fallback to revert container files to baseline
                         let receipt = try DevicePatchService.apply(project: proj)
                         try DevicePatchService.restore(receipt: receipt, allowChangedTargets: true)
                     }

@@ -18,12 +18,12 @@ struct SettingsView: View {
                                 .foregroundStyle(.white)
                             Text(language.text("common.version", appVersion))
                                 .font(.subheadline)
-                                .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
+                                .foregroundStyle(Color(white: 0.6))
                         }
                     }
                     .padding(.vertical, 4)
                 }
-                .listRowBackground(Color(red: 18/255, green: 25/255, blue: 38/255))
+                .listRowBackground(Color(white: 0.12))
 
                 // TELEGRAM CHANNEL BUTTON
                 Section {
@@ -31,25 +31,25 @@ struct SettingsView: View {
                         HStack(spacing: 10) {
                             Image(systemName: "paperplane.fill")
                                 .font(.system(size: 16, weight: .bold))
-                                .foregroundStyle(Color.white)
+                                .foregroundStyle(.black)
                             Text("Join My Telegram Channel")
                                 .font(.subheadline.weight(.bold))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(.black)
                             Spacer()
                             Image(systemName: "arrow.up.right")
                                 .font(.caption.weight(.bold))
-                                .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
+                                .foregroundStyle(.black)
                         }
                     }
                 }
-                .listRowBackground(Color(red: 25/255, green: 45/255, blue: 70/255))
+                .listRowBackground(Color.white)
 
                 // DEVICE INFO
                 Section("DEVICE INFORMATION") {
                     LabeledContent(language.text("dashboard.hardware_model"), value: AppInfo.displayMachineName)
                     LabeledContent(language.text("settings.ios_version"), value: "\(AppInfo.osVersion) (\(AppInfo.osBuild))")
                 }
-                .listRowBackground(Color(red: 18/255, green: 25/255, blue: 38/255))
+                .listRowBackground(Color(white: 0.12))
 
                 // SUPPORTED VERIFIED VERSIONS
                 Section("VERIFIED COMPATIBILITY") {
@@ -63,10 +63,28 @@ struct SettingsView: View {
                     LabeledContent("iOS 18", value: ExploitSupportPolicy.verifiedIOS18Range)
                     LabeledContent("iOS 26", value: ExploitSupportPolicy.verifiedIOS26Range)
                 }
-                .listRowBackground(Color(red: 18/255, green: 25/255, blue: 38/255))
+                .listRowBackground(Color(white: 0.12))
+
+                // LOG OUT BUTTON
+                Section {
+                    Button(role: .destructive) {
+                        KeySystem.resetActivation()
+                        dismiss()
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "rectangle.portrait.and.arrow.right")
+                                .font(.headline.weight(.bold))
+                            Text("Log Out")
+                                .font(.headline.weight(.bold))
+                        }
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .foregroundStyle(Color.red)
+                    }
+                }
+                .listRowBackground(Color(white: 0.12))
             }
             .scrollContentBackground(.hidden)
-            .background(Color(red: 10/255, green: 14/255, blue: 23/255).ignoresSafeArea())
+            .background(Color.black.ignoresSafeArea())
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

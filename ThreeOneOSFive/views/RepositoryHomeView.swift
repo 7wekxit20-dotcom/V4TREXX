@@ -31,30 +31,6 @@ struct RepositoryHomeView: View {
                         }
                         .padding(.vertical, 8)
 
-                        // JOIN TELEGRAM CHANNEL BUTTON
-                        Button {
-                            if let url = URL(string: "https://t.me/v4rtexxofficial") {
-                                UIApplication.shared.open(url)
-                            }
-                        } label: {
-                            HStack(spacing: 10) {
-                                Image(systemName: "paperplane.fill")
-                                    .font(.system(size: 18, weight: .bold))
-                                Text("Join My Telegram Channel")
-                                    .font(.headline.weight(.bold))
-                                Spacer()
-                                Image(systemName: "arrow.up.right")
-                                    .font(.subheadline.weight(.bold))
-                            }
-                            .foregroundStyle(.black)
-                            .padding(.horizontal, 18)
-                            .padding(.vertical, 14)
-                            .background(Color.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                            .shadow(color: Color.white.opacity(0.2), radius: 8, x: 0, y: 4)
-                        }
-                        .buttonStyle(.plain)
-
                         // GAME SELECTOR CARD
                         VStack(alignment: .leading, spacing: 14) {
                             Text("TARGET GAME PROFILE")

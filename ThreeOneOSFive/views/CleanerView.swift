@@ -24,12 +24,12 @@ struct CleanerView: View {
                         VStack(spacing: 12) {
                             ZStack {
                                 RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                    .fill(Color(red: 56/255, green: 189/255, blue: 248/255).opacity(0.15))
+                                    .fill(Color(white: 0.15))
                                     .frame(width: 64, height: 64)
 
                                 Image(systemName: "trash.fill")
                                     .font(.system(size: 28))
-                                    .foregroundStyle(Color(red: 56/255, green: 189/255, blue: 248/255))
+                                    .foregroundStyle(.white)
                             }
 
                             Text("Free Fire Cache Cleaner")
@@ -39,7 +39,7 @@ struct CleanerView: View {
                             Text("Scans and cleans Library/Caches & tmp for Free Fire containers.")
                                 .font(.subheadline)
                                 .multilineTextAlignment(.center)
-                                .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
+                                .foregroundStyle(Color(white: 0.6))
                                 .padding(.horizontal, 16)
                         }
                         .padding(.vertical, 16)
@@ -49,12 +49,12 @@ struct CleanerView: View {
                             HStack {
                                 Text("REAL CONTAINER CACHE DETECTED")
                                     .font(.caption2.weight(.bold))
-                                    .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
+                                    .foregroundStyle(Color(white: 0.6))
                                 Spacer()
                                 if isScanning {
                                     ProgressView()
                                         .scaleEffect(0.8)
-                                        .tint(Color(red: 56/255, green: 189/255, blue: 248/255))
+                                        .tint(.white)
                                 }
                             }
 
@@ -67,7 +67,7 @@ struct CleanerView: View {
                                             .scaledToFill()
                                     } else {
                                         Image(systemName: "flame.fill")
-                                            .foregroundStyle(Color(red: 56/255, green: 189/255, blue: 248/255))
+                                            .foregroundStyle(.white)
                                     }
                                 }
                                 .frame(width: 40, height: 40)
@@ -79,7 +79,7 @@ struct CleanerView: View {
                                         .foregroundStyle(.white)
                                     Text("com.dts.freefireth")
                                         .font(.caption2.monospaced())
-                                        .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
+                                        .foregroundStyle(Color(white: 0.6))
                                     if !isFFInstalled {
                                         Text("⚠️ Not Installed on Device")
                                             .font(.caption2.weight(.bold))
@@ -91,10 +91,10 @@ struct CleanerView: View {
 
                                 Text(isFFInstalled ? sizeText(freeFireCacheBytes) : "N/A")
                                     .font(.system(.subheadline, design: .monospaced).weight(.bold))
-                                    .foregroundStyle(freeFireCacheBytes > 0 ? Color(red: 56/255, green: 189/255, blue: 248/255) : Color(red: 148/255, green: 163/255, blue: 184/255))
+                                    .foregroundStyle(freeFireCacheBytes > 0 ? Color.white : Color(white: 0.6))
                             }
                             .padding(14)
-                            .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+                            .background(Color(white: 0.12))
                             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
                             // Free Fire MAX Row
@@ -106,7 +106,7 @@ struct CleanerView: View {
                                             .scaledToFill()
                                     } else {
                                         Image(systemName: "bolt.shield.fill")
-                                            .foregroundStyle(Color(red: 56/255, green: 189/255, blue: 248/255))
+                                            .foregroundStyle(.white)
                                     }
                                 }
                                 .frame(width: 40, height: 40)
@@ -118,7 +118,7 @@ struct CleanerView: View {
                                         .foregroundStyle(.white)
                                     Text("com.dts.freefiremax")
                                         .font(.caption2.monospaced())
-                                        .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
+                                        .foregroundStyle(Color(white: 0.6))
                                     if !isFFMaxInstalled {
                                         Text("⚠️ Not Installed on Device")
                                             .font(.caption2.weight(.bold))
@@ -130,18 +130,18 @@ struct CleanerView: View {
 
                                 Text(isFFMaxInstalled ? sizeText(freeFireMaxCacheBytes) : "N/A")
                                     .font(.system(.subheadline, design: .monospaced).weight(.bold))
-                                    .foregroundStyle(freeFireMaxCacheBytes > 0 ? Color(red: 56/255, green: 189/255, blue: 248/255) : Color(red: 148/255, green: 163/255, blue: 184/255))
+                                    .foregroundStyle(freeFireMaxCacheBytes > 0 ? Color.white : Color(white: 0.6))
                             }
                             .padding(14)
-                            .background(Color(red: 15/255, green: 23/255, blue: 42/255))
+                            .background(Color(white: 0.12))
                             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         }
                         .padding(18)
-                        .background(Color(red: 22/255, green: 30/255, blue: 46/255))
+                        .background(Color(white: 0.08))
                         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: 22, style: .continuous)
-                                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                                .stroke(Color.white.opacity(0.12), lineWidth: 1)
                         )
 
                         // ACTION BUTTON TO CLEAN CACHE
@@ -162,15 +162,9 @@ struct CleanerView: View {
                                 .font(.headline)
                                 .foregroundStyle(.black)
                                 .frame(maxWidth: .infinity, minHeight: 52)
-                                .background(
-                                    LinearGradient(
-                                        colors: [Color(red: 56/255, green: 189/255, blue: 248/255), Color(red: 14/255, green: 165/255, blue: 233/255)],
-                                        startPoint: .leading,
-                                        endPoint: .trailing
-                                    )
-                                )
+                                .background(Color.white)
                                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                                .shadow(color: Color(red: 56/255, green: 189/255, blue: 248/255).opacity(0.35), radius: 10, x: 0, y: 4)
+                                .shadow(color: Color.white.opacity(0.25), radius: 10, x: 0, y: 4)
                             }
                             .buttonStyle(.plain)
                             .disabled(isCleaning || isScanning || (freeFireCacheBytes + freeFireMaxCacheBytes == 0))
@@ -183,7 +177,7 @@ struct CleanerView: View {
                                     Text("Re-scan Containers")
                                 }
                                 .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(Color(red: 56/255, green: 189/255, blue: 248/255))
+                                .foregroundStyle(Color.white)
                             }
                             .buttonStyle(.plain)
                         }

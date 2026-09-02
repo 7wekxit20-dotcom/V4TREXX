@@ -9,18 +9,6 @@ struct KeyAuthAppConfig {
     static let apiUrl = "https://keyauth.win/api/1.2/"
 }
 
-struct KeyAuthResponse: Codable {
-    let success: Bool?
-    let message: String?
-    let info: KeyAuthUserInfo?
-}
-
-struct KeyAuthUserInfo: Codable {
-    let username: String?
-    let subscription: String?
-    let expiry: String?
-}
-
 struct KeySystem {
     static let storageKey = "v4rtexx.key_activated"
     static let savedKeyStorageKey = "v4rtexx.saved_key"
@@ -44,15 +32,12 @@ struct KeySystem {
     }
 
     static func validateKey(_ key: String) -> Bool {
-        let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-        // Format: 19 uppercase alphanumeric characters or KeyAuth format
-        guard trimmed.count >= 10 else { return false }
-        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_"))
-        return trimmed.unicodeScalars.allSatisfy { allowed.contains($0) }
+        let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !trimmed.isEmpty
     }
 
     static func activate(with key: String) -> Bool {
-        let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
         guard validateKey(trimmed) else { return false }
         
         UserDefaults.standard.set(true, forKey: storageKey)
