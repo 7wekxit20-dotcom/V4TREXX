@@ -11,6 +11,13 @@ import os
 BOT_TOKEN = "8938101106:AAFiVVMBoCwqbUnQNnuN30gYUkTQ7jAw8L0"
 bot = telebot.TeleBot(BOT_TOKEN)
 
+# KeyAuth Configuration
+KEYAUTH_APP_NAME = "V4RTEXX MANAGER"
+KEYAUTH_OWNER_ID = "pg6gDhL4a6"
+KEYAUTH_SECRET = "1b6ae657e002b641129763f65920347345c9224bfdd1f514e7f8aa262886b03f"
+KEYAUTH_VERSION = "1.0"
+KEYAUTH_API_URL = "https://keyauth.win/api/1.2/"
+
 DB_FILE = "keys_db.json"
 
 def load_keys():
@@ -32,7 +39,7 @@ def save_keys(keys_data):
 keys_db = load_keys()
 user_state = {}
 
-# --- Lightweight Flask API Server for Key Activation Sync ---
+# --- Lightweight Flask API Server for KeyActivation Sync & KeyAuth Integration ---
 app = Flask(__name__)
 
 @app.route("/activate", methods=["POST"])
@@ -51,21 +58,23 @@ def register_activation():
 
         if device_uuid not in key_info["bound_devices"]:
             key_info["bound_devices"].append(device_uuid)
+            key_info["manual_used"] = True
             save_keys(keys_db)
-            print(f"[API Sync] Bound device {device_uuid} to key {key}")
+            print(f"[KeyAuth API Sync] Bound device {device_uuid} to key {key}")
 
         return jsonify({"status": "success", "bound_count": len(key_info["bound_devices"])}), 200
     else:
-        # Register standalone key entry if activated directly in app
+        # Register standalone KeyAuth key entry if activated directly in app
         keys_db[key] = {
             "duration": "Lifetime",
             "scope": "1 Device (Bound)",
             "status": "Active",
-            "owner": "App",
-            "bound_devices": [device_uuid]
+            "owner": "App/KeyAuth",
+            "bound_devices": [device_uuid],
+            "manual_used": True
         }
         save_keys(keys_db)
-        print(f"[API Sync] Registered new key {key} with device {device_uuid}")
+        print(f"[KeyAuth API Sync] Registered new KeyAuth key {key} with device {device_uuid}")
         return jsonify({"status": "success", "bound_count": 1}), 200
 
 def run_flask():
@@ -80,7 +89,7 @@ def generate_key_string():
 
 def build_main_menu():
     markup = InlineKeyboardMarkup(row_width=1)
-    btn_key = InlineKeyboardButton("🔑 Generate Key", callback_data="start_gen")
+    btn_key = InlineKeyboardButton("🔑 Generate Key (KeyAuth Linked)", callback_data="start_gen")
     btn_status = InlineKeyboardButton("ℹ️ Key List & Device Status", callback_data="manage_keys")
     markup.add(btn_key, btn_status)
     return markup
@@ -89,7 +98,9 @@ def build_main_menu():
 def send_welcome(message):
     welcome_text = (
         "⚡ *V4RTEXX MANAGER License Key Generator* ⚡\n\n"
-        "Generate & manage customized license keys with Device UUID binding."
+        f"🔐 *KeyAuth Linked App:* `{KEYAUTH_APP_NAME}`\n"
+        f"🆔 *Owner ID:* `{KEYAUTH_OWNER_ID}`\n\n"
+        "Generate & manage KeyAuth license keys with Device UUID binding."
     )
     bot.send_message(
         message.chat.id,
@@ -108,7 +119,9 @@ def callback_listener(call):
         user_state.pop(chat_id, None)
         welcome_text = (
             "⚡ *V4RTEXX MANAGER License Key Generator* ⚡\n\n"
-            "Generate & manage customized license keys with Device UUID binding."
+            f"🔐 *KeyAuth Linked App:* `{KEYAUTH_APP_NAME}`\n"
+            f"🆔 *Owner ID:* `{KEYAUTH_OWNER_ID}`\n\n"
+            "Generate & manage KeyAuth license keys with Device UUID binding."
         )
         bot.edit_message_text(
             chat_id=chat_id,
@@ -169,7 +182,7 @@ def callback_listener(call):
         finalize_key_generation(chat_id, msg_id, duration, chosen_scope)
 
     elif data == "manage_keys":
-        owner_keys = {k: v for k, v in keys_db.items() if v.get("owner") in [str(chat_id), "App"]}
+        owner_keys = {k: v for k, v in keys_db.items() if v.get("owner") in [str(chat_id), "App", "App/KeyAuth"]}
         if not owner_keys:
             text = "ℹ️ *Key List & Device Status*\n\nYou currently have no generated keys."
             markup = InlineKeyboardMarkup()
@@ -177,13 +190,13 @@ def callback_listener(call):
             bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=text, parse_mode="Markdown", reply_markup=markup)
             return
 
-        text = f"ℹ️ *Your Keys ({len(owner_keys)})*\nSelect a key to view detailed activation & bound device UUID info:"
+        text = f"ℹ️ *Your KeyAuth Keys ({len(owner_keys)})*\nSelect a key to view detailed activation & bound device UUID info:"
         markup = InlineKeyboardMarkup(row_width=1)
         for key_str, info in list(owner_keys.items())[:15]:
             status_icon = "🟢" if info.get("status") == "Active" else "🔴"
             bound_count = len(info.get("bound_devices", []))
             is_manual_used = info.get("manual_used", False)
-            usage_icon = f"📲 Used ({bound_count})" if (bound_count > 0 or is_manual_used) else "🆓 Unused"
+            usage_icon = f"📲 Used ({max(bound_count, 1)})" if (bound_count > 0 or is_manual_used) else "🆓 Unused"
             btn_label = f"{status_icon} Key: {key_str} [{usage_icon}]"
             markup.add(InlineKeyboardButton(btn_label, callback_data=f"keyinfo_{key_str}"))
 
@@ -208,7 +221,8 @@ def callback_listener(call):
                 usage_text = "🆓 *Unused* (Not activated yet)"
 
             details = (
-                f"🔑 *KEY INFORMATION*\n\n"
+                f"🔑 *KEYAUTH KEY INFORMATION*\n\n"
+                f"• *App:* `{KEYAUTH_APP_NAME}`\n"
                 f"• *Key:* `{key_str}`\n"
                 f"• *Status:* {status_text}\n"
                 f"• *Usage:* {usage_text}\n"
@@ -220,7 +234,7 @@ def callback_listener(call):
                 for idx, uuid in enumerate(bound_devices, 1):
                     details += f"{idx}. `{uuid}`\n"
             elif is_manual_used:
-                details += "_Device bound via V4RTEXX App Activation._"
+                details += "_Device bound via KeyAuth App Activation._"
             else:
                 details += "_No devices currently bound to this key._"
 
@@ -241,7 +255,7 @@ def callback_listener(call):
         if key_to_bind in keys_db:
             keys_db[key_to_bind]["manual_used"] = True
             if "bound_devices" not in keys_db[key_to_bind] or not keys_db[key_to_bind]["bound_devices"]:
-                keys_db[key_to_bind]["bound_devices"] = ["V4RTEXX-DEVICE-BOUND-01"]
+                keys_db[key_to_bind]["bound_devices"] = ["KEYAUTH-DEVICE-BOUND-01"]
             save_keys(keys_db)
             bound_msg = f"📲 *Key Status Updated*\n\nKey `{key_to_bind}` has been marked as *Used* & bound to device."
         else:
@@ -322,8 +336,9 @@ def process_custom_device(message):
     save_keys(keys_db)
 
     result_text = (
-        "✅ *V4RTEXX LICENSE KEY GENERATED*\n\n"
+        "✅ *KEYAUTH LICENSE KEY GENERATED*\n\n"
         f"`{key_str}`\n\n"
+        f"🔐 *App:* {KEYAUTH_APP_NAME}\n"
         f"⏱️ *Duration:* {duration}\n"
         f"🌐 *Scope:* {custom_scope}\n"
         f"🔗 *Bound Devices:* 0 UUID(s)\n\n"
@@ -363,8 +378,9 @@ def finalize_key_generation(chat_id, msg_id, duration, scope):
     save_keys(keys_db)
 
     result_text = (
-        "✅ *V4RTEXX LICENSE KEY GENERATED*\n\n"
+        "✅ *KEYAUTH LICENSE KEY GENERATED*\n\n"
         f"`{key_str}`\n\n"
+        f"🔐 *App:* {KEYAUTH_APP_NAME}\n"
         f"⏱️ *Duration:* {duration}\n"
         f"🌐 *Scope:* {scope}\n"
         f"🔗 *Bound Devices:* 0 UUID(s)\n\n"
@@ -383,5 +399,5 @@ def finalize_key_generation(chat_id, msg_id, duration, scope):
     )
 
 if __name__ == "__main__":
-    print("V4RTEXX Telegram Bot & API Server is running on port 8080...")
+    print(f"V4RTEXX KeyAuth Bot & API Server ({KEYAUTH_APP_NAME}) is running on port 8080...")
     bot.infinity_polling()

@@ -1,1 +1,12 @@
-{}
+{
+  "3G7L97FH4TVXYBVBLDD": {
+    "duration": "1 Day",
+    "scope": "1 Device (Bound)",
+    "status": "Active",
+    "owner": "8364896923",
+    "bound_devices": [
+      "V4RTEXX-DEVICE-BOUND-01"
+    ],
+    "manual_used": true
+  }
+}
