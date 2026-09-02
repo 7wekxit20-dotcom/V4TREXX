@@ -20,15 +20,26 @@ jobs:
 
       - name: Build App with xcodebuild
         run: |
+          set -o pipefail
           xcodebuild -project ThreeOneOSFive.xcodeproj \
                      -scheme ThreeOneOSFive \
                      -configuration Release \
                      -sdk iphoneos \
                      -derivedDataPath build \
-                     CODE_SIGN_IDENTITY="-" \
-                     CODE_SIGNING_ALLOWED=YES \
+                     CODE_SIGN_STYLE=Manual \
+                     CODE_SIGNING_ALLOWED=NO \
+                     CODE_SIGN_IDENTITY="" \
                      CODE_SIGNING_REQUIRED=NO \
-                     COMPILER_INDEX_STORE_ENABLE=NO
+                     DEVELOPMENT_TEAM="" \
+                     PROVISIONING_PROFILE_SPECIFIER="" \
+                     COMPILER_INDEX_STORE_ENABLE=NO 2>&1 | tee xcodebuild.log
+
+      - name: Output Build Logs on Failure
+        if: failure()
+        run: |
+          echo "=== XCODEBUILD ERROR LOG START ==="
+          grep -i -C 3 "error:" xcodebuild.log || tail -n 100 xcodebuild.log
+          echo "=== XCODEBUILD ERROR LOG END ==="
 
       - name: Package IPA
         run: |
