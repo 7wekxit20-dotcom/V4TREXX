@@ -248,17 +248,44 @@ struct PatchProjectsView: View {
 
                         Spacer()
 
-                        if isSelected {
-                            HStack(spacing: 4) {
-                                Image(systemName: "checkmark.circle.fill")
-                                Text("Selected")
+                        HStack(spacing: 12) {
+                            if isSelected {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                    Text("Selected")
+                                }
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(Color(red: 56/255, green: 189/255, blue: 248/255))
                             }
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(Color(red: 56/255, green: 189/255, blue: 248/255))
-                        } else {
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 14, weight: .bold))
-                                .foregroundStyle(Color(red: 100/255, green: 116/255, blue: 139/255))
+
+                            // Export Button
+                            Button {
+                                exportPackage(url: item.packageURL)
+                            } label: {
+                                Image(systemName: "square.and.arrow.up")
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundStyle(Color(red: 56/255, green: 189/255, blue: 248/255))
+                                    .frame(width: 34, height: 34)
+                                    .background(Color(red: 30/255, green: 41/255, blue: 59/255))
+                                    .clipShape(Circle())
+                            }
+                            .buttonStyle(.plain)
+
+                            // Delete Button
+                            Button {
+                                store.delete(item)
+                                if selectedPackagePath == item.packageURL.path {
+                                    selectedPackagePath = ""
+                                }
+                            } label: {
+                                Image(systemName: "trash.fill")
+                                    .font(.system(size: 15, weight: .bold))
+                                    .foregroundStyle(Color.red)
+                                    .frame(width: 34, height: 34)
+                                    .background(Color(red: 45/255, green: 20/255, blue: 25/255))
+                                    .clipShape(Circle())
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding(16)
@@ -281,5 +308,12 @@ struct PatchProjectsView: View {
                 .buttonStyle(.plain)
             }
         }
+    }
+
+    private func exportPackage(url: URL) {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootVC = windowScene.windows.first?.rootViewController else { return }
+        let activityVC = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+        rootVC.present(activityVC, animated: true)
     }
 }

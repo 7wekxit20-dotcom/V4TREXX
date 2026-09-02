@@ -1,6 +1,8 @@
 import requests
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+from flask import Flask, request, jsonify
+import threading
 import random
 import string
 import json
@@ -30,6 +32,48 @@ def save_keys(keys_data):
 keys_db = load_keys()
 user_state = {}
 
+# --- Lightweight Flask API Server for Key Activation Sync ---
+app = Flask(__name__)
+
+@app.route("/activate", methods=["POST"])
+def register_activation():
+    data = request.get_json(silent=True) or {}
+    key = data.get("key", "").strip().upper()
+    device_uuid = data.get("device_uuid", "").strip()
+
+    if not key or not device_uuid:
+        return jsonify({"status": "error", "message": "Invalid parameters"}), 400
+
+    if key in keys_db:
+        key_info = keys_db[key]
+        if "bound_devices" not in key_info or not isinstance(key_info["bound_devices"], list):
+            key_info["bound_devices"] = []
+
+        if device_uuid not in key_info["bound_devices"]:
+            key_info["bound_devices"].append(device_uuid)
+            save_keys(keys_db)
+            print(f"[API Sync] Bound device {device_uuid} to key {key}")
+
+        return jsonify({"status": "success", "bound_count": len(key_info["bound_devices"])}), 200
+    else:
+        # Register standalone key entry if activated directly in app
+        keys_db[key] = {
+            "duration": "Lifetime",
+            "scope": "1 Device (Bound)",
+            "status": "Active",
+            "owner": "App",
+            "bound_devices": [device_uuid]
+        }
+        save_keys(keys_db)
+        print(f"[API Sync] Registered new key {key} with device {device_uuid}")
+        return jsonify({"status": "success", "bound_count": 1}), 200
+
+def run_flask():
+    app.run(host="0.0.0.0", port=8080)
+
+threading.Thread(target=run_flask, daemon=True).start()
+
+# --- Telegram Bot Interface ---
 def generate_key_string():
     chars = string.ascii_uppercase + string.digits
     return ''.join(random.choice(chars) for _ in range(19))
@@ -75,7 +119,6 @@ def callback_listener(call):
         )
 
     elif data == "start_gen":
-        # Step 1: Duration Selection
         user_state[chat_id] = {}
         markup = InlineKeyboardMarkup(row_width=2)
         btn1 = InlineKeyboardButton("⏳ 1 Day", callback_data="dur_1d")
@@ -126,7 +169,7 @@ def callback_listener(call):
         finalize_key_generation(chat_id, msg_id, duration, chosen_scope)
 
     elif data == "manage_keys":
-        owner_keys = {k: v for k, v in keys_db.items() if v.get("owner") == str(chat_id)}
+        owner_keys = {k: v for k, v in keys_db.items() if v.get("owner") in [str(chat_id), "App"]}
         if not owner_keys:
             text = "ℹ️ *Key List & Device Status*\n\nYou currently have no generated keys."
             markup = InlineKeyboardMarkup()
@@ -139,7 +182,7 @@ def callback_listener(call):
         for key_str, info in list(owner_keys.items())[:15]:
             status_icon = "🟢" if info.get("status") == "Active" else "🔴"
             bound_count = len(info.get("bound_devices", []))
-            usage_icon = "📲 Used" if bound_count > 0 else "🆓 Unused"
+            usage_icon = f"📲 Used ({bound_count})" if bound_count > 0 else "🆓 Unused"
             btn_label = f"{status_icon} Key: {key_str} [{usage_icon}]"
             markup.add(InlineKeyboardButton(btn_label, callback_data=f"keyinfo_{key_str}"))
 
@@ -176,8 +219,7 @@ def callback_listener(call):
             markup = InlineKeyboardMarkup(row_width=1)
             if status == "Active":
                 markup.add(InlineKeyboardButton("❌ Revoke Key", callback_data=f"revoke_{key_str}"))
-            else:
-                markup.add(InlineKeyboardButton("🗑️ Delete Key Permanently", callback_data=f"delete_{key_str}"))
+            markup.add(InlineKeyboardButton("🗑️ Delete Key Permanently", callback_data=f"delete_{key_str}"))
             markup.add(InlineKeyboardButton("🔙 Back to Key List", callback_data="manage_keys"))
             bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=details, parse_mode="Markdown", reply_markup=markup)
         else:
@@ -188,7 +230,7 @@ def callback_listener(call):
         if key_to_revoke in keys_db:
             keys_db[key_to_revoke]["status"] = "Revoked"
             save_keys(keys_db)
-            revoked_text = f"🚫 *Key Revoked*\n\nKey `{key_to_revoke}` has been set to Revoked.\n\nYou can now delete it permanently if desired."
+            revoked_text = f"🚫 *Key Revoked*\n\nKey `{key_to_revoke}` has been set to Revoked."
             markup = InlineKeyboardMarkup(row_width=1)
             markup.add(InlineKeyboardButton("🗑️ Delete Key Permanently", callback_data=f"delete_{key_to_revoke}"))
             markup.add(InlineKeyboardButton("📋 Back to Key List", callback_data="manage_keys"))
@@ -315,5 +357,5 @@ def finalize_key_generation(chat_id, msg_id, duration, scope):
     )
 
 if __name__ == "__main__":
-    print("V4RTEXX Telegram Bot is running...")
+    print("V4RTEXX Telegram Bot & API Server is running on port 8080...")
     bot.infinity_polling()
