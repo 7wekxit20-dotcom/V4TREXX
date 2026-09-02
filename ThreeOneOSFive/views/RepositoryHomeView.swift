@@ -15,22 +15,10 @@ struct RepositoryHomeView: View {
 
                 ScrollView {
                     VStack(spacing: 20) {
-                        // V4RTEXX Banner Header
+                        // V4RTEXX Header Banner
                         VStack(spacing: 12) {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                    .fill(LinearGradient(
-                                        colors: [Color(red: 56/255, green: 189/255, blue: 248/255), Color(red: 14/255, green: 165/255, blue: 233/255)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ))
-                                    .frame(width: 64, height: 64)
-                                    .shadow(color: Color(red: 56/255, green: 189/255, blue: 248/255).opacity(0.35), radius: 12, x: 0, y: 6)
-
-                                Image(systemName: "shield.fill")
-                                    .font(.system(size: 30, weight: .bold))
-                                    .foregroundStyle(.white)
-                            }
+                            AppLogo(size: 64)
+                                .shadow(color: Color(red: 56/255, green: 189/255, blue: 248/255).opacity(0.35), radius: 12, x: 0, y: 6)
 
                             Text("V4RTEXX MANAGER")
                                 .font(.title2.weight(.bold))
@@ -53,19 +41,19 @@ struct RepositoryHomeView: View {
                                 selectedGame = "com.dts.freefireth"
                             } label: {
                                 HStack(spacing: 14) {
-                                    ZStack {
-                                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                            .fill(
-                                                selectedGame == "com.dts.freefireth"
-                                                    ? Color(red: 56/255, green: 189/255, blue: 248/255)
-                                                    : Color(red: 30/255, green: 41/255, blue: 59/255)
-                                            )
-                                            .frame(width: 44, height: 44)
-
-                                        Image(systemName: "flame.fill")
-                                            .font(.system(size: 22))
-                                            .foregroundStyle(selectedGame == "com.dts.freefireth" ? .black : Color(red: 56/255, green: 189/255, blue: 248/255))
+                                    Group {
+                                        if let image = UIImage(named: "FreeFireLogo") ?? UIImage(contentsOfFile: "free fire.jpg") {
+                                            Image(uiImage: image)
+                                                .resizable()
+                                                .scaledToFill()
+                                        } else {
+                                            Image(systemName: "flame.fill")
+                                                .font(.system(size: 22))
+                                                .foregroundStyle(selectedGame == "com.dts.freefireth" ? .black : Color(red: 56/255, green: 189/255, blue: 248/255))
+                                        }
                                     }
+                                    .frame(width: 48, height: 48)
+                                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text("Free Fire")
@@ -108,19 +96,19 @@ struct RepositoryHomeView: View {
                                 selectedGame = "com.dts.freefiremax"
                             } label: {
                                 HStack(spacing: 14) {
-                                    ZStack {
-                                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                            .fill(
-                                                selectedGame == "com.dts.freefiremax"
-                                                    ? Color(red: 56/255, green: 189/255, blue: 248/255)
-                                                    : Color(red: 30/255, green: 41/255, blue: 59/255)
-                                            )
-                                            .frame(width: 44, height: 44)
-
-                                        Image(systemName: "bolt.shield.fill")
-                                            .font(.system(size: 22))
-                                            .foregroundStyle(selectedGame == "com.dts.freefiremax" ? .black : Color(red: 56/255, green: 189/255, blue: 248/255))
+                                    Group {
+                                        if let image = UIImage(named: "FreeFireMaxLogo") ?? UIImage(contentsOfFile: "free fire max.jpg") {
+                                            Image(uiImage: image)
+                                                .resizable()
+                                                .scaledToFill()
+                                        } else {
+                                            Image(systemName: "bolt.shield.fill")
+                                                .font(.system(size: 22))
+                                                .foregroundStyle(selectedGame == "com.dts.freefiremax" ? .black : Color(red: 56/255, green: 189/255, blue: 248/255))
+                                        }
                                     }
+                                    .frame(width: 48, height: 48)
+                                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text("Free Fire MAX")
@@ -166,7 +154,7 @@ struct RepositoryHomeView: View {
                                 .stroke(Color.white.opacity(0.08), lineWidth: 1)
                         )
 
-                        // CURRENT PROFILE STATUS
+                        // ACTIVE PROFILE STATUS
                         VStack(alignment: .leading, spacing: 12) {
                             Text("ACTIVE PROFILE STATUS")
                                 .font(.caption2.weight(.bold))
@@ -194,18 +182,6 @@ struct RepositoryHomeView: View {
                                 }
                                 .font(.subheadline.weight(.bold))
                                 .foregroundStyle(Color.green)
-                            }
-                            .font(.subheadline)
-
-                            Divider().background(Color.white.opacity(0.1))
-
-                            HStack {
-                                Text("Engine Protection")
-                                    .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
-                                Spacer()
-                                Text("Protected by V4RTEXX")
-                                    .font(.subheadline.weight(.bold))
-                                    .foregroundStyle(Color(red: 56/255, green: 189/255, blue: 248/255))
                             }
                             .font(.subheadline)
                         }

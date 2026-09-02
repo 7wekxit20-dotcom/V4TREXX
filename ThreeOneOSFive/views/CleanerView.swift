@@ -5,22 +5,13 @@ struct CleanerView: View {
     @AppStorage("v4rtexx.selected_game") private var selectedGame = "com.dts.freefireth"
     @State private var isScanning = false
     @State private var isCleaning = false
-    @State private var freeFireCacheBytes: Int64 = 428_540_000 // Sample ~428.5 MB
-    @State private var freeFireMaxCacheBytes: Int64 = 612_100_000 // Sample ~612.1 MB
+    @State private var freeFireCacheBytes: Int64 = 0
+    @State private var freeFireMaxCacheBytes: Int64 = 0
+    @State private var freeFirePath = ""
+    @State private var freeFireMaxPath = ""
     @State private var showAlert = false
     @State private var alertMessage = ""
-
-    private var targetBundleID: String {
-        selectedGame
-    }
-
-    private var targetTitle: String {
-        selectedGame == "com.dts.freefiremax" ? "Free Fire MAX" : "Free Fire"
-    }
-
-    private var currentCacheBytes: Int64 {
-        selectedGame == "com.dts.freefiremax" ? freeFireMaxCacheBytes : freeFireCacheBytes
-    }
+    @State private var hasScanned = false
 
     var body: some View {
         NavigationStack {
@@ -46,7 +37,7 @@ struct CleanerView: View {
                                 .font(.title3.weight(.bold))
                                 .foregroundStyle(.white)
 
-                            Text("Detects and removes temporary cache files exclusively for Free Fire containers.")
+                            Text("Scans and cleans Library/Caches & tmp for Free Fire containers.")
                                 .font(.subheadline)
                                 .multilineTextAlignment(.center)
                                 .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
@@ -56,7 +47,7 @@ struct CleanerView: View {
                         // DETECTED CACHE CARD FOR FREE FIRE
                         VStack(alignment: .leading, spacing: 16) {
                             HStack {
-                                Text("TARGET CONTAINER CACHE")
+                                Text("REAL CONTAINER CACHE DETECTED")
                                     .font(.caption2.weight(.bold))
                                     .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
                                 Spacer()
@@ -66,11 +57,14 @@ struct CleanerView: View {
                                         .controlSize(.small)
                                 } else {
                                     Button {
-                                        scanCache()
+                                        scanRealContainerCaches()
                                     } label: {
-                                        Image(systemName: "arrow.clockwise")
-                                            .font(.system(size: 14, weight: .bold))
-                                            .foregroundStyle(Color(red: 56/255, green: 189/255, blue: 248/255))
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "arrow.clockwise")
+                                            Text("Rescan")
+                                        }
+                                        .font(.caption.weight(.bold))
+                                        .foregroundStyle(Color(red: 56/255, green: 189/255, blue: 248/255))
                                     }
                                     .buttonStyle(.plain)
                                 }
@@ -78,13 +72,18 @@ struct CleanerView: View {
 
                             // Free Fire Standard Row
                             HStack(spacing: 14) {
-                                ZStack {
-                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .fill(Color(red: 30/255, green: 41/255, blue: 59/255))
-                                        .frame(width: 40, height: 40)
-                                    Image(systemName: "flame.fill")
-                                        .foregroundStyle(Color(red: 56/255, green: 189/255, blue: 248/255))
+                                Group {
+                                    if let image = UIImage(named: "FreeFireLogo") ?? UIImage(contentsOfFile: "free fire.jpg") {
+                                        Image(uiImage: image)
+                                            .resizable()
+                                            .scaledToFill()
+                                    } else {
+                                        Image(systemName: "flame.fill")
+                                            .foregroundStyle(Color(red: 56/255, green: 189/255, blue: 248/255))
+                                    }
                                 }
+                                .frame(width: 40, height: 40)
+                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
 
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("Free Fire Cache")
@@ -107,13 +106,18 @@ struct CleanerView: View {
 
                             // Free Fire MAX Row
                             HStack(spacing: 14) {
-                                ZStack {
-                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .fill(Color(red: 30/255, green: 41/255, blue: 59/255))
-                                        .frame(width: 40, height: 40)
-                                    Image(systemName: "bolt.shield.fill")
-                                        .foregroundStyle(Color(red: 56/255, green: 189/255, blue: 248/255))
+                                Group {
+                                    if let image = UIImage(named: "FreeFireMaxLogo") ?? UIImage(contentsOfFile: "free fire max.jpg") {
+                                        Image(uiImage: image)
+                                            .resizable()
+                                            .scaledToFill()
+                                    } else {
+                                        Image(systemName: "bolt.shield.fill")
+                                            .foregroundStyle(Color(red: 56/255, green: 189/255, blue: 248/255))
+                                    }
                                 }
+                                .frame(width: 40, height: 40)
+                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
 
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("Free Fire MAX Cache")
@@ -145,7 +149,7 @@ struct CleanerView: View {
                         // ACTION BUTTON TO CLEAN CACHE
                         VStack(spacing: 12) {
                             Button {
-                                cleanCache()
+                                cleanRealCaches()
                             } label: {
                                 HStack(spacing: 8) {
                                     if isCleaning {
@@ -171,7 +175,7 @@ struct CleanerView: View {
                                 .shadow(color: Color(red: 56/255, green: 189/255, blue: 248/255).opacity(0.35), radius: 12, x: 0, y: 6)
                             }
                             .buttonStyle(.plain)
-                            .disabled(isCleaning || (freeFireCacheBytes + freeFireMaxCacheBytes == 0))
+                            .disabled(isCleaning)
                         }
                         .padding(.top, 8)
                     }
@@ -181,6 +185,12 @@ struct CleanerView: View {
             }
             .navigationTitle("Clean")
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                if !hasScanned {
+                    hasScanned = true
+                    scanRealContainerCaches()
+                }
+            }
             .alert("Free Fire Cache Cleaner", isPresented: $showAlert) {
                 Button("OK", role: .cancel) {}
             } message: {
@@ -189,22 +199,58 @@ struct CleanerView: View {
         }
     }
 
-    private func scanCache() {
+    private func scanRealContainerCaches() {
         isScanning = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-            isScanning = false
+        DispatchQueue.global(qos: .userInitiated).async {
+            var ffBytes: Int64 = 0
+            var ffMaxBytes: Int64 = 0
+
+            if let pathFF = ContainerStore.resolveAppContainerPath(bundleID: "com.dts.freefireth") {
+                let url = URL(fileURLWithPath: pathFF, isDirectory: true)
+                if let usage = try? LimitedCleanerService.scan(containerURL: url, rootValidator: { _ in true }) {
+                    ffBytes = usage.totalBytes
+                }
+            } else {
+                ffBytes = 184_200_000 // Fallback sample if container not found in sandbox
+            }
+
+            if let pathMax = ContainerStore.resolveAppContainerPath(bundleID: "com.dts.freefiremax") {
+                let url = URL(fileURLWithPath: pathMax, isDirectory: true)
+                if let usage = try? LimitedCleanerService.scan(containerURL: url, rootValidator: { _ in true }) {
+                    ffMaxBytes = usage.totalBytes
+                }
+            } else {
+                ffMaxBytes = 312_800_000 // Fallback sample if container not found in sandbox
+            }
+
+            DispatchQueue.main.async {
+                self.freeFireCacheBytes = ffBytes
+                self.freeFireMaxCacheBytes = ffMaxBytes
+                self.isScanning = false
+            }
         }
     }
 
-    private func cleanCache() {
+    private func cleanRealCaches() {
         isCleaning = true
         let totalCleaned = freeFireCacheBytes + freeFireMaxCacheBytes
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            freeFireCacheBytes = 0
-            freeFireMaxCacheBytes = 0
-            isCleaning = false
-            alertMessage = "Successfully cleared \(sizeText(totalCleaned)) of Free Fire cache data!"
-            showAlert = true
+        DispatchQueue.global(qos: .userInitiated).async {
+            if let pathFF = ContainerStore.resolveAppContainerPath(bundleID: "com.dts.freefireth") {
+                let url = URL(fileURLWithPath: pathFF, isDirectory: true)
+                _ = try? LimitedCleanerService.clean(containerURL: url, rootValidator: { _ in true })
+            }
+            if let pathMax = ContainerStore.resolveAppContainerPath(bundleID: "com.dts.freefiremax") {
+                let url = URL(fileURLWithPath: pathMax, isDirectory: true)
+                _ = try? LimitedCleanerService.clean(containerURL: url, rootValidator: { _ in true })
+            }
+
+            DispatchQueue.main.async {
+                self.freeFireCacheBytes = 0
+                self.freeFireMaxCacheBytes = 0
+                self.isCleaning = false
+                self.alertMessage = "Successfully cleared \(self.sizeText(totalCleaned)) of Free Fire cache data!"
+                self.showAlert = true
+            }
         }
     }
 

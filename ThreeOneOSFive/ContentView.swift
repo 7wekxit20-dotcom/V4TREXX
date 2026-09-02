@@ -15,34 +15,40 @@ struct ContentView: View {
             Color(red: 10/255, green: 14/255, blue: 23/255)
                 .ignoresSafeArea()
 
-            // Main Tab Content
-            Group {
+            // Main Tab Content with Smooth Animation Transitions
+            ZStack {
                 switch AppSection(rawValue: tabNavigation.selectedTab) ?? .home {
                 case .home:
                     RepositoryHomeView(
                         onOpenSettings: { showSettings = true },
                         onOpenLogs: { showLogs = true }
                     )
+                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
                 case .inject:
                     InjectView(
                         onOpenSettings: { showSettings = true },
                         onOpenLogs: { showLogs = true }
                     )
+                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
                 case .library:
                     PatchProjectsView(
                         onOpenSettings: { showSettings = true },
                         onOpenLogs: { showLogs = true }
                     )
+                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
                 case .clean:
                     CleanerView()
+                        .transition(.opacity.combined(with: .scale(scale: 0.98)))
                 case .settings:
                     SettingsView()
+                        .transition(.opacity.combined(with: .scale(scale: 0.98)))
                 }
             }
+            .animation(.easeInOut(duration: 0.22), value: tabNavigation.selectedTab)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(.bottom, 64) // Leave space for custom bottom bar
 
-            // Custom V4RTEXX Bottom Navigation Bar matching Screenshots 1 & 2
+            // Custom V4RTEXX Bottom Navigation Bar
             customTabBar
         }
         .tint(Color(red: 56/255, green: 189/255, blue: 248/255))
@@ -77,7 +83,7 @@ struct ContentView: View {
         let isSelected = tabNavigation.selectedTab == section.rawValue
 
         return Button {
-            withAnimation(.easeInOut(duration: 0.18)) {
+            withAnimation(.easeInOut(duration: 0.22)) {
                 tabNavigation.select(section.rawValue)
             }
         } label: {
