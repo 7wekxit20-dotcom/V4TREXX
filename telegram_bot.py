@@ -37,7 +37,7 @@ def generate_key_string():
 def build_main_menu():
     markup = InlineKeyboardMarkup(row_width=1)
     btn_key = InlineKeyboardButton("🔑 Generate Key", callback_data="start_gen")
-    btn_status = InlineKeyboardButton("ℹ️ Key Status & Bound Devices", callback_data="manage_keys")
+    btn_status = InlineKeyboardButton("ℹ️ Key List & Device Status", callback_data="manage_keys")
     markup.add(btn_key, btn_status)
     return markup
 
@@ -126,49 +126,69 @@ def callback_listener(call):
         finalize_key_generation(chat_id, msg_id, duration, chosen_scope)
 
     elif data == "manage_keys":
-        owner_keys = {k: v for k, v in keys_db.items() if v.get("owner") == str(chat_id) and v.get("status") == "Active"}
+        owner_keys = {k: v for k, v in keys_db.items() if v.get("owner") == str(chat_id)}
         if not owner_keys:
-            text = "ℹ️ *Key Status & Device UUID Binding*\n\nYou currently have no active generated keys."
+            text = "ℹ️ *Key List & Device Status*\n\nYou currently have no generated keys."
             markup = InlineKeyboardMarkup()
             markup.add(InlineKeyboardButton("🔙 Main Menu", callback_data="main_menu"))
             bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=text, parse_mode="Markdown", reply_markup=markup)
             return
 
-        text = f"ℹ️ *Active Keys & Device UUID Status ({len(owner_keys)})*\n\n"
+        text = f"ℹ️ *Your Keys ({len(owner_keys)})*\nSelect a key to view detailed device binding info & status:"
         markup = InlineKeyboardMarkup(row_width=1)
-        for key_str, info in list(owner_keys.items())[:10]:
-            bound_devices = info.get("bound_devices", [])
-            device_count = len(bound_devices)
-            scope = info.get("scope", "1 Device")
-            dur = info.get("duration", "Lifetime")
-
-            text += (
-                f"🔑 *Key:* `{key_str}`\n"
-                f"⏱️ *Duration:* {dur}\n"
-                f"📱 *Scope:* {scope}\n"
-                f"🔗 *Bound Devices:* {device_count} UUID(s) bound\n"
-            )
-            if bound_devices:
-                for idx, uuid in enumerate(bound_devices, 1):
-                    text += f"   • Device #{idx}: `{uuid}`\n"
-            text += "\n"
-
-            btn_label = f"❌ Revoke: {key_str}"
-            markup.add(InlineKeyboardButton(btn_label, callback_data=f"revoke_{key_str}"))
+        for key_str, info in list(owner_keys.items())[:15]:
+            status_icon = "🟢" if info.get("status") == "Active" else "🔴"
+            btn_label = f"{status_icon} Key: {key_str} ({info.get('duration', 'Lifetime')})"
+            markup.add(InlineKeyboardButton(btn_label, callback_data=f"keyinfo_{key_str}"))
 
         markup.add(InlineKeyboardButton("🔙 Main Menu", callback_data="main_menu"))
         bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=text, parse_mode="Markdown", reply_markup=markup)
+
+    elif data.startswith("keyinfo_"):
+        key_str = data.replace("keyinfo_", "")
+        if key_str in keys_db:
+            info = keys_db[key_str]
+            bound_devices = info.get("bound_devices", [])
+            status = info.get("status", "Active")
+            duration = info.get("duration", "Lifetime")
+            scope = info.get("scope", "1 Device")
+
+            status_text = "🟢 *ACTIVE*" if status == "Active" else "🔴 *REVOKED*"
+
+            details = (
+                f"🔑 *KEY DETAILS*\n\n"
+                f"• *Key:* `{key_str}`\n"
+                f"• *Status:* {status_text}\n"
+                f"• *Duration:* `{duration}`\n"
+                f"• *Scope:* `{scope}`\n"
+                f"• *Bound Devices:* `{len(bound_devices)} UUID(s)`\n\n"
+            )
+            if bound_devices:
+                details += "*Bound Device UUIDs:*\n"
+                for idx, uuid in enumerate(bound_devices, 1):
+                    details += f"{idx}. `{uuid}`\n"
+            else:
+                details += "_No devices currently bound to this key._"
+
+            markup = InlineKeyboardMarkup(row_width=1)
+            if status == "Active":
+                markup.add(InlineKeyboardButton("❌ Revoke Key", callback_data=f"revoke_{key_str}"))
+            markup.add(InlineKeyboardButton("🔙 Back to Key List", callback_data="manage_keys"))
+            bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=details, parse_mode="Markdown", reply_markup=markup)
+        else:
+            bot.send_message(chat_id, "⚠️ Key not found.")
 
     elif data.startswith("revoke_"):
         key_to_revoke = data.replace("revoke_", "")
         if key_to_revoke in keys_db:
             keys_db[key_to_revoke]["status"] = "Revoked"
             save_keys(keys_db)
-            revoked_text = f"🗑️ *Key Revoked & Removed*\n\nKey `{key_to_revoke}` has been revoked."
+            revoked_text = f"🗑️ *Key Revoked*\n\nKey `{key_to_revoke}` has been set to Revoked."
         else:
             revoked_text = "⚠️ Key not found."
 
         markup = InlineKeyboardMarkup()
+        markup.add(InlineKeyboardButton("📋 Back to Key List", callback_data="manage_keys"))
         markup.add(InlineKeyboardButton("🔙 Main Menu", callback_data="main_menu"))
         bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=revoked_text, parse_mode="Markdown", reply_markup=markup)
 
@@ -216,7 +236,7 @@ def process_custom_device(message):
         f"`{key_str}`\n\n"
         f"⏱️ *Duration:* {duration}\n"
         f"🌐 *Scope:* {custom_scope}\n"
-        f"🔗 *Bound Devices:* 0 UUID(s) bound\n\n"
+        f"🔗 *Bound Devices:* 0 UUID(s)\n\n"
         "📋 _Tap key above to copy, then paste it in V4RTEXX MANAGER app._"
     )
     markup = InlineKeyboardMarkup(row_width=1)
@@ -257,7 +277,7 @@ def finalize_key_generation(chat_id, msg_id, duration, scope):
         f"`{key_str}`\n\n"
         f"⏱️ *Duration:* {duration}\n"
         f"🌐 *Scope:* {scope}\n"
-        f"🔗 *Bound Devices:* 0 UUID(s) bound\n\n"
+        f"🔗 *Bound Devices:* 0 UUID(s)\n\n"
         "📋 _Tap key above to copy, then paste it in V4RTEXX MANAGER app._"
     )
     markup = InlineKeyboardMarkup(row_width=1)

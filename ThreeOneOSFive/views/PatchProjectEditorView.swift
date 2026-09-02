@@ -76,8 +76,7 @@ struct PatchProjectEditorView: View {
                     }
                 }
 
-                if existingProject != nil || !rules.isEmpty || !directories.isEmpty {
-                    Section {
+                Section {
                     ForEach(rules) { rule in
                         Button {
                             ruleEditor = PatchRuleEditorContext(rule: rule)
@@ -96,24 +95,27 @@ struct PatchProjectEditorView: View {
                     }
                     .onDelete { rules.remove(atOffsets: $0) }
 
-                        if existingProject != nil {
-                            Button {
-                                ruleEditor = PatchRuleEditorContext(rule: nil)
-                            } label: {
-                                Label(language.text("patch.add_rule"), systemImage: "plus.circle.fill")
-                            }
+                    Button {
+                        ruleEditor = PatchRuleEditorContext(rule: nil)
+                    } label: {
+                        HStack {
+                            Image(systemName: "plus.circle.fill")
+                            Text("Add Replacement Rule")
+                                .fontWeight(.bold)
                         }
-                        if !directories.isEmpty {
-                            LabeledContent(language.text("patch.folders")) {
-                                Text("\(directories.count)")
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    } header: {
-                        Text(language.text("patch.captured_content"))
-                    } footer: {
-                        Text(language.text("patch.workspace_edit_footer"))
+                        .foregroundStyle(Color(red: 56/255, green: 189/255, blue: 248/255))
                     }
+
+                    if !directories.isEmpty {
+                        LabeledContent(language.text("patch.folders")) {
+                            Text("\(directories.count)")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                } header: {
+                    Text(language.text("patch.captured_content"))
+                } footer: {
+                    Text("Add file target replacement rules for com.dts.freefireth or com.dts.freefiremax.")
                 }
 
                 Section {
