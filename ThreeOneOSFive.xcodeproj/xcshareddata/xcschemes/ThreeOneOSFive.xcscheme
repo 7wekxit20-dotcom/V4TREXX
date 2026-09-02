@@ -46,7 +46,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "3105A500"
             BuildableName = "V4RTEXX MANAGER.app"
-            BlueprintName = "3105"
+            BlueprintName = "V4RTEXX MANAGER"
             ReferencedContainer = "container:ThreeOneOSFive.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -63,7 +63,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "3105A500"
             BuildableName = "V4RTEXX MANAGER.app"
-            BlueprintName = "3105"
+            BlueprintName = "V4RTEXX MANAGER"
             ReferencedContainer = "container:ThreeOneOSFive.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
