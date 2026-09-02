@@ -84,7 +84,7 @@ struct ContentView: View {
 
         return Button {
             withAnimation(.easeInOut(duration: 0.2)) {
-                tabNavigation.selectedTab = section.rawValue
+                tabNavigation.select(section.rawValue)
             }
         } label: {
             VStack(spacing: 3) {
