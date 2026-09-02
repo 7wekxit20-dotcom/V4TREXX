@@ -9,13 +9,14 @@ struct ThreeOneOSFiveApp: App {
     @StateObject private var patchStore = PatchProjectStore()
     @StateObject private var repositoryStore = PackageRepositoryStore()
     @AppStorage(AppLanguage.storageKey) private var languageCode = AppLanguage.english.rawValue
-    @State private var showOnboarding = OnboardingStore.shouldShow()
+    @State private var isKeyActivated = KeySystem.isActivated
     @State private var showAttribution = false
     @State private var updateOffer: AppUpdateChecker.Offer?
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init() {
+        OnboardingStore.markCompleted()
         setupLogCapture()
         log("app: V4RTEXX MANAGER launching — iOS \(AppInfo.osVersion) (\(AppInfo.osBuild)) \(AppInfo.machineName)")
     }
@@ -34,39 +35,27 @@ struct ThreeOneOSFiveApp: App {
     var body: some Scene {
         WindowGroup {
             ZStack {
-                ContentView()
-                    .environmentObject(appState)
-                    .environmentObject(patchDraftCoordinator)
-                    .environmentObject(fileOperationCoordinator)
-                    .environmentObject(patchStore)
-                    .environmentObject(repositoryStore)
-                    .environment(\.appLanguage, language)
-                    .environment(\.locale, language.locale)
-                    .opacity(showOnboarding ? 0 : 1)
-                    .allowsHitTesting(!showOnboarding)
-
-                if showOnboarding {
-                    OnboardingView {
-                        OnboardingStore.markCompleted()
-                        withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.24)) {
-                            showOnboarding = false
+                if !isKeyActivated {
+                    KeyActivationView {
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            isKeyActivated = true
                         }
                         appState.detectSupport()
                         checkForUpdate()
                     }
-                    .environment(\.appLanguage, language)
-                    .environment(\.locale, language.locale)
-                    .transition(
-                        reduceMotion
-                            ? .opacity
-                            : .opacity.combined(with: .scale(scale: 0.98))
-                    )
-                    .zIndex(1)
+                    .transition(.opacity)
+                    .zIndex(2)
+                } else {
+                    ContentView()
+                        .environmentObject(appState)
+                        .environmentObject(patchDraftCoordinator)
+                        .environmentObject(fileOperationCoordinator)
+                        .environmentObject(patchStore)
+                        .environmentObject(repositoryStore)
+                        .environment(\.appLanguage, language)
+                        .environment(\.locale, language.locale)
+                        .transition(.opacity)
                 }
-            }
-            .displayIdentityAttribution(isPresented: $showAttribution, enabled: !showOnboarding)
-            .sheet(isPresented: $showAttribution) {
-                DisplayAttributionSheet()
             }
             .alert(item: $updateOffer) { offer in
                 Alert(
@@ -81,13 +70,13 @@ struct ThreeOneOSFiveApp: App {
                 )
             }
             .onAppear {
-                if !showOnboarding {
+                if isKeyActivated {
                     appState.detectSupport()
                     checkForUpdate()
                 }
             }
             .onChange(of: scenePhase) { phase in
-                guard phase == .active, !showOnboarding else { return }
+                guard phase == .active, isKeyActivated else { return }
                 appState.detectSupport()
             }
             .onOpenURL { url in

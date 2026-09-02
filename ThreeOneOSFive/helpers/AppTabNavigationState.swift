@@ -2,34 +2,12 @@ import Foundation
 
 enum AppSection: Int, CaseIterable, Identifiable {
     case home
-    case new
-    case sources
-    case installed
-    case files
-    case search
+    case inject
+    case library
+    case clean
+    case settings
 
     var id: Int { rawValue }
-}
-
-enum WallpaperFeatureSupportPolicy {
-    static func isSupported(major: Int) -> Bool {
-        switch major {
-        case 17, 18, 26, 27:
-            return true
-        default:
-            return false
-        }
-    }
-}
-
-struct OneShotPresentationGate: Equatable {
-    private(set) var hasClaimed = false
-
-    mutating func claim() -> Bool {
-        guard !hasClaimed else { return false }
-        hasClaimed = true
-        return true
-    }
 }
 
 struct FeatureVisibility: Equatable {
@@ -38,21 +16,16 @@ struct FeatureVisibility: Equatable {
 
     let developerModeEnabled: Bool
 
-    init(developerModeEnabled: Bool) {
+    init(developerModeEnabled: Bool = false) {
         self.developerModeEnabled = developerModeEnabled
     }
 
     var visibleSections: [AppSection] {
-        AppSection.allCases.filter(isVisible)
+        AppSection.allCases
     }
 
     func isVisible(_ section: AppSection) -> Bool {
-        switch section {
-        case .files:
-            return developerModeEnabled
-        default:
-            return true
-        }
+        true
     }
 }
 
@@ -87,8 +60,7 @@ struct AppTabNavigationState: Equatable {
     }
 
     mutating func reconcileSelection(with visibility: FeatureVisibility) {
-        guard let selectedSection = AppSection(rawValue: selectedTab),
-              visibility.isVisible(selectedSection) else {
+        guard AppSection(rawValue: selectedTab) != nil else {
             selectedTab = AppSection.home.rawValue
             return
         }

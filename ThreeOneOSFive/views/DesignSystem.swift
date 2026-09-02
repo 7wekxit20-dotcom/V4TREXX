@@ -1,9 +1,15 @@
 import SwiftUI
 
 enum AppTheme {
-    static let accent = Color.black
-    static let pageBackground = Color(uiColor: .systemBackground)
-    static let consoleBackground = Color(uiColor: .secondarySystemBackground)
+    static let accent = Color(red: 56/255, green: 189/255, blue: 248/255) // #38BDF8 Vibrant Cyan/Light Blue
+    static let accentGradient = LinearGradient(
+        colors: [Color(red: 56/255, green: 189/255, blue: 248/255), Color(red: 14/255, green: 165/255, blue: 233/255)],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+    static let pageBackground = Color(red: 10/255, green: 14/255, blue: 23/255) // #0A0E17 Dark Navy
+    static let cardBackground = Color(red: 22/255, green: 30/255, blue: 46/255) // #161E2E Dark Card
+    static let consoleBackground = Color(red: 15/255, green: 23/255, blue: 42/255)
     static let pageInset: CGFloat = 16
     static let rowIconSize: CGFloat = 17
     static let rowIconFrame: CGFloat = 28
@@ -13,7 +19,7 @@ enum AppTheme {
     static let appIconSize: CGFloat = 32
     static let emptyIconSize: CGFloat = 30
     static let selectionIconSize: CGFloat = 18
-    static let contentCardCornerRadius: CGFloat = 20
+    static let contentCardCornerRadius: CGFloat = 18
     static let contentCardInset: CGFloat = 16
     static let contentCardPadding: CGFloat = 16
 }
@@ -25,7 +31,7 @@ struct AppCardBorder: View {
             style: .continuous
         )
         .strokeBorder(
-            Color(uiColor: .separator).opacity(0.22),
+            Color.white.opacity(0.08),
             lineWidth: 0.5
         )
         .accessibilityHidden(true)
@@ -40,10 +46,10 @@ struct AppRowIcon: View {
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
-                .fill(tint.opacity(0.12))
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(tint.opacity(0.15))
             Image(systemName: systemName)
-                .font(.system(size: symbolSize, weight: .medium))
+                .font(.system(size: symbolSize, weight: .semibold))
                 .foregroundStyle(tint)
         }
         .frame(width: frameSize, height: frameSize)
@@ -60,13 +66,14 @@ struct AppSearchField: View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
                 .accessibilityHidden(true)
 
             TextField(prompt, text: $text)
                 .font(.body)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
+                .foregroundStyle(.white)
                 .submitLabel(.search)
 
             if !text.isEmpty {
@@ -75,21 +82,20 @@ struct AppSearchField: View {
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(clearLabel)
             }
         }
-        .padding(.horizontal, 11)
-        .frame(minHeight: 36)
+        .padding(.horizontal, 12)
+        .frame(minHeight: 40)
         .background(
-            Color(uiColor: .secondarySystemFill),
-            in: RoundedRectangle(cornerRadius: 10, style: .continuous)
+            Color(red: 22/255, green: 30/255, blue: 46/255),
+            in: RoundedRectangle(cornerRadius: 12, style: .continuous)
         )
         .padding(.horizontal, AppTheme.pageInset)
         .padding(.vertical, 8)
-        .background(.bar)
     }
 }
 
@@ -106,7 +112,7 @@ struct AppLogo: View {
                     .resizable()
                     .scaledToFill()
             } else {
-                Image(systemName: "slider.horizontal.3")
+                Image(systemName: "shield.fill")
                     .font(.title2.weight(.semibold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
