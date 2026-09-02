@@ -210,8 +210,6 @@ struct CleanerView: View {
                 if let usage = try? LimitedCleanerService.scan(containerURL: url, rootValidator: { _ in true }) {
                     ffBytes = usage.totalBytes
                 }
-            } else {
-                ffBytes = 184_200_000 // Fallback sample if container not found in sandbox
             }
 
             if let pathMax = ContainerStore.resolveAppContainerPath(bundleID: "com.dts.freefiremax") {
@@ -219,8 +217,6 @@ struct CleanerView: View {
                 if let usage = try? LimitedCleanerService.scan(containerURL: url, rootValidator: { _ in true }) {
                     ffMaxBytes = usage.totalBytes
                 }
-            } else {
-                ffMaxBytes = 312_800_000 // Fallback sample if container not found in sandbox
             }
 
             DispatchQueue.main.async {

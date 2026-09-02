@@ -4,5 +4,17 @@
     "scope": "1 Device (Bound)",
     "status": "Revoked",
     "owner": "8364896923"
+  },
+  "YYCIMR1GH9H8F8JOVT9": {
+    "duration": "7 Days",
+    "scope": "Global (All Devices)",
+    "status": "Revoked",
+    "owner": "8364896923"
+  },
+  "F89OJETHQVH9V75RL78": {
+    "duration": "1 Day",
+    "scope": "1 Device (Bound)",
+    "status": "Active",
+    "owner": "8364896923"
   }
 }

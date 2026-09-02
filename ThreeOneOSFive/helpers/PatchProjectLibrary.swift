@@ -142,10 +142,10 @@ enum PatchProjectLibrary {
         } else {
             let root = try packageRootURL(fileManager: fileManager)
             let baseName = sanitizedFilename(projectName)
-            var candidate = root.appendingPathComponent(baseName).appendingPathExtension("3105")
+            var candidate = root.appendingPathComponent(baseName).appendingPathExtension("v4rtexx")
             var suffix = 2
             while fileManager.fileExists(atPath: candidate.path) {
-                candidate = root.appendingPathComponent("\(baseName)-\(suffix)").appendingPathExtension("3105")
+                candidate = root.appendingPathComponent("\(baseName)-\(suffix)").appendingPathExtension("v4rtexx")
                 suffix += 1
             }
             destination = candidate

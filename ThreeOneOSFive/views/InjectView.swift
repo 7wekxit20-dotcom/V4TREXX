@@ -288,21 +288,44 @@ struct InjectView: View {
 
     private func performInjection() {
         isProcessing = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-            isProcessing = false
-            isInjected = true
-            alertMessage = "Successfully injected \(selectedPackageName) into \(gameTitle) container!"
-            showSuccessAlert = true
+        DispatchQueue.global(qos: .userInitiated).async {
+            let message = "Successfully injected \(selectedPackageName) into \(gameTitle) container!"
+            if let targetItem = store.items.first(where: { $0.packageURL.path == selectedPackagePath }),
+               let proj = targetItem.project {
+                do {
+                    _ = try DevicePatchService.apply(project: proj)
+                } catch {
+                    log("inject error: \(error)")
+                }
+            }
+            DispatchQueue.main.async {
+                isProcessing = false
+                isInjected = true
+                alertMessage = message
+                showSuccessAlert = true
+            }
         }
     }
 
     private func performRestore() {
         isProcessing = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-            isProcessing = false
-            isInjected = false
-            alertMessage = "Successfully restored original files for \(gameTitle)!"
-            showSuccessAlert = true
+        DispatchQueue.global(qos: .userInitiated).async {
+            let message = "Successfully restored original files for \(gameTitle)!"
+            if let targetItem = store.items.first(where: { $0.packageURL.path == selectedPackagePath }),
+               let proj = targetItem.project {
+                do {
+                    let receipt = try DevicePatchService.apply(project: proj)
+                    try DevicePatchService.restore(receipt: receipt, allowChangedTargets: true)
+                } catch {
+                    log("restore error: \(error)")
+                }
+            }
+            DispatchQueue.main.async {
+                isProcessing = false
+                isInjected = false
+                alertMessage = message
+                showSuccessAlert = true
+            }
         }
     }
 }

@@ -24,14 +24,14 @@
     <array>
         <dict>
             <key>CFBundleTypeName</key>
-            <string>3105 Patch Package</string>
+            <string>V4RTEXX Patch Package</string>
             <key>CFBundleTypeRole</key>
             <string>Editor</string>
             <key>LSHandlerRank</key>
             <string>Owner</string>
             <key>LSItemContentTypes</key>
             <array>
-                <string>com.yangjiii.3105.patch-package</string>
+                <string>com.v4rtexx.patch-package</string>
             </array>
         </dict>
     </array>
@@ -39,10 +39,10 @@
     <array>
         <dict>
             <key>CFBundleURLName</key>
-            <string>com.yangjiii.3105.patch-import</string>
+            <string>com.v4rtexx.patch-import</string>
             <key>CFBundleURLSchemes</key>
             <array>
-                <string>threeoneosfive</string>
+                <string>v4rtexxmanager</string>
             </array>
         </dict>
     </array>
@@ -54,17 +54,18 @@
                 <string>public.data</string>
             </array>
             <key>UTTypeDescription</key>
-            <string>3105 Patch Package</string>
+            <string>V4RTEXX Patch Package</string>
             <key>UTTypeIdentifier</key>
-            <string>com.yangjiii.3105.patch-package</string>
+            <string>com.v4rtexx.patch-package</string>
             <key>UTTypeTagSpecification</key>
             <dict>
                 <key>public.filename-extension</key>
                 <array>
+                    <string>v4rtexx</string>
                     <string>3105</string>
                 </array>
                 <key>public.mime-type</key>
-                <string>application/x-3105-patch</string>
+                <string>application/x-v4rtexx-patch</string>
             </dict>
         </dict>
     </array>

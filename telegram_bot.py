@@ -9,7 +9,6 @@ import os
 BOT_TOKEN = "8938101106:AAFiVVMBoCwqbUnQNnuN30gYUkTQ7jAw8L0"
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# In-memory / file-backed key database
 DB_FILE = "keys_db.json"
 
 def load_keys():
@@ -29,8 +28,6 @@ def save_keys(keys_data):
         print(f"Error saving keys: {e}")
 
 keys_db = load_keys()
-
-# User pending generation state
 user_state = {}
 
 def generate_key_string():
@@ -78,16 +75,18 @@ def callback_listener(call):
         )
 
     elif data == "start_gen":
-        # Step 1: Select Duration
+        # Step 1: Duration Selection (Presets or Manual)
         user_state[chat_id] = {}
         markup = InlineKeyboardMarkup(row_width=2)
         btn1 = InlineKeyboardButton("⏳ 1 Day", callback_data="dur_1d")
         btn7 = InlineKeyboardButton("📅 7 Days", callback_data="dur_7d")
         btn30 = InlineKeyboardButton("📆 30 Days", callback_data="dur_30d")
         btn_life = InlineKeyboardButton("♾️ Lifetime", callback_data="dur_life")
+        btn_custom = InlineKeyboardButton("✏️ Manual Custom Duration", callback_data="dur_custom")
         btn_back = InlineKeyboardButton("🔙 Back", callback_data="main_menu")
         markup.add(btn1, btn7)
         markup.add(btn30, btn_life)
+        markup.add(btn_custom)
         markup.add(btn_back)
         bot.edit_message_text(
             chat_id=chat_id,
@@ -96,6 +95,10 @@ def callback_listener(call):
             parse_mode="Markdown",
             reply_markup=markup
         )
+
+    elif data == "dur_custom":
+        msg = bot.send_message(chat_id, "✏️ *Please reply with your custom duration* (e.g., `15 Days`, `60 Days`, `6 Months`):", parse_mode="Markdown")
+        bot.register_next_step_handler(msg, process_custom_duration)
 
     elif data.startswith("dur_"):
         duration_map = {
@@ -106,20 +109,11 @@ def callback_listener(call):
         }
         chosen_dur = duration_map.get(data, "Lifetime")
         user_state[chat_id] = {"duration": chosen_dur}
+        prompt_device_scope(chat_id, msg_id, chosen_dur)
 
-        # Step 2: Select Device Binding / Global Scope
-        markup = InlineKeyboardMarkup(row_width=1)
-        btn_single = InlineKeyboardButton("📱 1 Device (Bound)", callback_data="scope_single")
-        btn_global = InlineKeyboardButton("🌐 Global Key (All Devices)", callback_data="scope_global")
-        btn_back = InlineKeyboardButton("🔙 Back", callback_data="start_gen")
-        markup.add(btn_single, btn_global, btn_back)
-        bot.edit_message_text(
-            chat_id=chat_id,
-            message_id=msg_id,
-            text=f"📱 *Step 2: Select Device Scope*\nSelected Duration: `{chosen_dur}`",
-            parse_mode="Markdown",
-            reply_markup=markup
-        )
+    elif data == "scope_custom":
+        msg = bot.send_message(chat_id, "✏️ *Please reply with your custom device limit* (e.g., `3 Devices`, `10 Devices`):", parse_mode="Markdown")
+        bot.register_next_step_handler(msg, process_custom_device)
 
     elif data.startswith("scope_"):
         scope_map = {
@@ -129,35 +123,7 @@ def callback_listener(call):
         chosen_scope = scope_map.get(data, "Global (All Devices)")
         state = user_state.get(chat_id, {"duration": "Lifetime"})
         duration = state.get("duration", "Lifetime")
-
-        # Generate Key
-        key_str = generate_key_string()
-        keys_db[key_str] = {
-            "duration": duration,
-            "scope": chosen_scope,
-            "status": "Active",
-            "owner": str(chat_id)
-        }
-        save_keys(keys_db)
-
-        result_text = (
-            "✅ *V4RTEXX LICENSE KEY GENERATED*\n\n"
-            f"`{key_str}`\n\n"
-            f"⏱️ *Duration:* {duration}\n"
-            f"🌐 *Scope:* {chosen_scope}\n\n"
-            "📋 _Tap key above to copy, then paste it in V4RTEXX MANAGER app._"
-        )
-        markup = InlineKeyboardMarkup(row_width=1)
-        btn_gen_another = InlineKeyboardButton("🔄 Generate Another Key", callback_data="start_gen")
-        btn_menu = InlineKeyboardButton("🔙 Main Menu", callback_data="main_menu")
-        markup.add(btn_gen_another, btn_menu)
-        bot.edit_message_text(
-            chat_id=chat_id,
-            message_id=msg_id,
-            text=result_text,
-            parse_mode="Markdown",
-            reply_markup=markup
-        )
+        finalize_key_generation(chat_id, msg_id, duration, chosen_scope)
 
     elif data == "manage_keys":
         owner_keys = {k: v for k, v in keys_db.items() if v.get("owner") == str(chat_id) and v.get("status") == "Active"}
@@ -188,6 +154,102 @@ def callback_listener(call):
         markup = InlineKeyboardMarkup()
         markup.add(InlineKeyboardButton("🔙 Main Menu", callback_data="main_menu"))
         bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=revoked_text, parse_mode="Markdown", reply_markup=markup)
+
+def process_custom_duration(message):
+    chat_id = message.chat.id
+    custom_dur = message.text.strip()
+    if not custom_dur:
+        custom_dur = "Custom Duration"
+    user_state[chat_id] = {"duration": custom_dur}
+
+    markup = InlineKeyboardMarkup(row_width=1)
+    btn_single = InlineKeyboardButton("📱 1 Device (Bound)", callback_data="scope_single")
+    btn_global = InlineKeyboardButton("🌐 Global Key (All Devices)", callback_data="scope_global")
+    btn_custom = InlineKeyboardButton("✏️ Manual Custom Devices", callback_data="scope_custom")
+    btn_back = InlineKeyboardButton("🔙 Back", callback_data="start_gen")
+    markup.add(btn_single, btn_global, btn_custom, btn_back)
+
+    bot.send_message(
+        chat_id,
+        f"📱 *Step 2: Select Device Scope*\nSelected Duration: `{custom_dur}`",
+        parse_mode="Markdown",
+        reply_markup=markup
+    )
+
+def process_custom_device(message):
+    chat_id = message.chat.id
+    custom_scope = message.text.strip()
+    if not custom_scope:
+        custom_scope = "Custom Devices"
+    state = user_state.get(chat_id, {"duration": "Lifetime"})
+    duration = state.get("duration", "Lifetime")
+
+    key_str = generate_key_string()
+    keys_db[key_str] = {
+        "duration": duration,
+        "scope": custom_scope,
+        "status": "Active",
+        "owner": str(chat_id)
+    }
+    save_keys(keys_db)
+
+    result_text = (
+        "✅ *V4RTEXX LICENSE KEY GENERATED*\n\n"
+        f"`{key_str}`\n\n"
+        f"⏱️ *Duration:* {duration}\n"
+        f"🌐 *Scope:* {custom_scope}\n\n"
+        "📋 _Tap key above to copy, then paste it in V4RTEXX MANAGER app._"
+    )
+    markup = InlineKeyboardMarkup(row_width=1)
+    btn_gen_another = InlineKeyboardButton("🔄 Generate Another Key", callback_data="start_gen")
+    btn_menu = InlineKeyboardButton("🔙 Main Menu", callback_data="main_menu")
+    markup.add(btn_gen_another, btn_menu)
+
+    bot.send_message(chat_id, result_text, parse_mode="Markdown", reply_markup=markup)
+
+def prompt_device_scope(chat_id, msg_id, duration):
+    markup = InlineKeyboardMarkup(row_width=1)
+    btn_single = InlineKeyboardButton("📱 1 Device (Bound)", callback_data="scope_single")
+    btn_global = InlineKeyboardButton("🌐 Global Key (All Devices)", callback_data="scope_global")
+    btn_custom = InlineKeyboardButton("✏️ Manual Custom Devices", callback_data="scope_custom")
+    btn_back = InlineKeyboardButton("🔙 Back", callback_data="start_gen")
+    markup.add(btn_single, btn_global, btn_custom, btn_back)
+    bot.edit_message_text(
+        chat_id=chat_id,
+        message_id=msg_id,
+        text=f"📱 *Step 2: Select Device Scope*\nSelected Duration: `{duration}`",
+        parse_mode="Markdown",
+        reply_markup=markup
+    )
+
+def finalize_key_generation(chat_id, msg_id, duration, scope):
+    key_str = generate_key_string()
+    keys_db[key_str] = {
+        "duration": duration,
+        "scope": scope,
+        "status": "Active",
+        "owner": str(chat_id)
+    }
+    save_keys(keys_db)
+
+    result_text = (
+        "✅ *V4RTEXX LICENSE KEY GENERATED*\n\n"
+        f"`{key_str}`\n\n"
+        f"⏱️ *Duration:* {duration}\n"
+        f"🌐 *Scope:* {scope}\n\n"
+        "📋 _Tap key above to copy, then paste it in V4RTEXX MANAGER app._"
+    )
+    markup = InlineKeyboardMarkup(row_width=1)
+    btn_gen_another = InlineKeyboardButton("🔄 Generate Another Key", callback_data="start_gen")
+    btn_menu = InlineKeyboardButton("🔙 Main Menu", callback_data="main_menu")
+    markup.add(btn_gen_another, btn_menu)
+    bot.edit_message_text(
+        chat_id=chat_id,
+        message_id=msg_id,
+        text=result_text,
+        parse_mode="Markdown",
+        reply_markup=markup
+    )
 
 if __name__ == "__main__":
     print("V4RTEXX Telegram Bot is running...")
