@@ -71,12 +71,26 @@ struct ThreeOneOSFiveApp: App {
             }
             .onAppear {
                 if isKeyActivated {
+                    KeySystem.reverifySavedLicense { valid in
+                        if !valid {
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                isKeyActivated = false
+                            }
+                        }
+                    }
                     appState.detectSupport()
                     checkForUpdate()
                 }
             }
             .onChange(of: scenePhase) { phase in
                 guard phase == .active, isKeyActivated else { return }
+                KeySystem.reverifySavedLicense { valid in
+                    if !valid {
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            isKeyActivated = false
+                        }
+                    }
+                }
                 appState.detectSupport()
             }
             .onOpenURL { url in
@@ -102,92 +116,19 @@ class AppState: ObservableObject {
         )
     }
 
-    var isSupported: Bool { unsupportedMessage == nil }
-
     func detectSupport() {
-        let v = AppInfo.versionTuple
-        let supported = ExploitSupportPolicy.isSupported(
-            major: v.major,
-            minor: v.minor,
-            patch: v.patch,
+        let osTuple = AppInfo.versionTuple
+        let result = SupportPolicy.evaluate(
+            major: osTuple.major,
+            minor: osTuple.minor,
+            patch: osTuple.patch,
             build: AppInfo.osBuild
         )
-#if targetEnvironment(simulator)
-        if ProcessInfo.processInfo.arguments.contains("--simulate-access") {
-            exploitStatus = .success(method: "Simulator preview")
-        }
-#endif
 
-        unsupportedMessage = supported ? nil : "iOS \(AppInfo.osVersion) (\(AppInfo.osBuild))"
-        if let unsupportedMessage {
-            exploitStatus = .unsupported(unsupportedMessage)
-            return
-        }
-
-        let applicable = KernelExploit.isApplicable(
-            major: v.major,
-            minor: v.minor,
-            patch: v.patch,
-            build: AppInfo.osBuild
-        )
-        guard applicable else { return }
-
-        refreshKernelExploitStatus()
-        maybeAutoRunKernelExploit()
-    }
-
-    private func maybeAutoRunKernelExploit() {
-        guard !kernelExploitRunning,
-              !exploitStatus.isSuccess,
-              !exploitStatus.isFailed,
-              !autoRunAttempted else { return }
-        autoRunAttempted = true
-        log("app: starting kernel exploit automatically")
-        runKernelExploitIfNeeded()
-    }
-
-    private func refreshKernelExploitStatus() {
-        guard !kernelExploitRunning else { return }
-
-        // iOS < 26: kernel R/W success persists (no sandbox probe)
-        // iOS >= 26: verify full sandbox escape is still active
-        if KernelExploit.requiresSandboxEscape {
-            if KernelExploit.hasSandboxAccess() {
-                if !exploitStatus.isSuccess {
-                    exploitStatus = .success(method: "kexploit")
-                    log("app: existing sandbox access is still active; skipping kernel exploit")
-                }
-            } else if exploitStatus.isSuccess {
-                exploitStatus = .notStarted
-                log("app: sandbox access is no longer active")
-            }
-        }
-    }
-
-    func runKernelExploitIfNeeded() {
-        refreshKernelExploitStatus()
-        guard !kernelExploitRunning,
-              !exploitStatus.isSuccess,
-              !exploitStatus.isFailed else { return }
-        kernelExploitRunning = true
-        exploitStatus = .notStarted
-        log("app: running kernel exploit on background...")
-        DispatchQueue.global(qos: .userInitiated).async {
-            let ok = KernelExploit.run()
-            DispatchQueue.main.async {
-                self.kernelExploitRunning = false
-                if ok {
-                    self.exploitStatus = .success(method: "kexploit")
-                    if KernelExploit.requiresSandboxEscape {
-                        log("app: kernel exploit success — sandbox access verified")
-                    } else {
-                        log("app: kernel exploit success — kernel access active")
-                    }
-                } else {
-                    self.exploitStatus = .failed(method: "kexploit", code: -1)
-                    log("app: kernel exploit failed — relaunch the app before retrying")
-                }
-            }
+        if case .unsupported(let reason) = result {
+            unsupportedMessage = reason
+        } else {
+            unsupportedMessage = nil
         }
     }
 }
