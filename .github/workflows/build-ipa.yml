@@ -27,9 +27,10 @@ jobs:
                      -sdk iphoneos \
                      -derivedDataPath build \
                      CODE_SIGN_STYLE=Manual \
-                     CODE_SIGNING_ALLOWED=NO \
+                     CODE_SIGN_IDENTITY="-" \
+                     CODE_SIGNING_ALLOWED=YES \
                      CODE_SIGNING_REQUIRED=NO \
-                     CODE_SIGN_IDENTITY="" \
+                     HEADER_SEARCH_PATHS='$(inherited) $(SRCROOT)/ThreeOneOSFive' \
                      COMPILER_INDEX_STORE_ENABLE=NO 2>&1 | tee xcodebuild.log
 
       - name: Output Build Logs on Failure
