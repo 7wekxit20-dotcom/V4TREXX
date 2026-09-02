@@ -247,9 +247,11 @@ struct PatchProjectsView: View {
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button(role: .destructive) {
-                        store.delete(item)
-                        if selectedPackagePath == item.packageURL.path {
-                            selectedPackagePath = ""
+                        withAnimation {
+                            store.delete(item)
+                            if selectedPackagePath == item.packageURL.path {
+                                selectedPackagePath = ""
+                            }
                         }
                     } label: {
                         Label("Delete", systemImage: "trash.fill")

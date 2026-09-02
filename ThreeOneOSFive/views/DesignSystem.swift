@@ -66,15 +66,19 @@ struct AppSearchField: View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
+                .foregroundStyle(Color(white: 0.7))
                 .accessibilityHidden(true)
 
-            TextField(prompt, text: $text)
-                .font(.body)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .foregroundStyle(.white)
-                .submitLabel(.search)
+            TextField(
+                "",
+                text: $text,
+                prompt: Text(prompt).foregroundColor(Color(white: 0.45))
+            )
+            .font(.subheadline)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .foregroundStyle(.white)
+            .submitLabel(.search)
 
             if !text.isEmpty {
                 Button {
@@ -82,7 +86,7 @@ struct AppSearchField: View {
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
+                        .foregroundStyle(Color(white: 0.6))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(clearLabel)
@@ -91,8 +95,12 @@ struct AppSearchField: View {
         .padding(.horizontal, 12)
         .frame(minHeight: 40)
         .background(
-            Color(red: 22/255, green: 30/255, blue: 46/255),
+            Color(white: 0.10),
             in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color.white.opacity(0.15), lineWidth: 1)
         )
         .padding(.horizontal, AppTheme.pageInset)
         .padding(.vertical, 8)

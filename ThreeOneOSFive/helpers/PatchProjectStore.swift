@@ -281,14 +281,16 @@ final class PatchProjectStore: ObservableObject {
     }
 
     func delete(_ item: PatchLibraryItem) {
-        do {
-            try PatchProjectLibrary.delete(item)
-            reload()
-        } catch let error as PatchPackageError {
-            present(error)
-        } catch {
-            present(.invalidProject)
+        try? PatchProjectLibrary.delete(item)
+        if FileManager.default.fileExists(atPath: item.packageURL.path) {
+            try? FileManager.default.removeItem(at: item.packageURL)
         }
+        items.removeAll(where: {
+            $0.id == item.id
+            || $0.packageURL.path == item.packageURL.path
+            || $0.packageURL.lastPathComponent == item.packageURL.lastPathComponent
+        })
+        reload()
     }
 
     func synchronizeWorkspace(projectID: UUID, reportsSuccess: Bool = false) {
