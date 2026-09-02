@@ -19,8 +19,7 @@ jobs:
         run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
 
       - name: List available schemes
-        run: |
-          xcodebuild -project ThreeOneOSFive.xcodeproj -list 2>&1 || true
+        run: xcodebuild -project ThreeOneOSFive.xcodeproj -list 2>&1 || true
 
       - name: Build App with xcodebuild
         run: |
@@ -33,7 +32,7 @@ jobs:
                      CODE_SIGN_IDENTITY="-" \
                      CODE_SIGNING_ALLOWED=YES \
                      CODE_SIGNING_REQUIRED=NO \
-                     HEADER_SEARCH_PATHS="$(pwd)/ThreeOneOSFive" \
+                     HEADER_SEARCH_PATHS="$(pwd)/ThreeOneOSFive $(pwd)/ThreeOneOSFive/kexploit $(pwd)/ThreeOneOSFive/exploit $(pwd)/ThreeOneOSFive/helpers" \
                      COMPILER_INDEX_STORE_ENABLE=NO 2>&1 | tee xcodebuild.log
           exit ${PIPESTATUS[0]}
 

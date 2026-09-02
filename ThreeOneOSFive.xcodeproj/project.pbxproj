@@ -474,6 +474,9 @@
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SRCROOT)/ThreeOneOSFive",
+					"$(SRCROOT)/ThreeOneOSFive/kexploit",
+					"$(SRCROOT)/ThreeOneOSFive/exploit",
+					"$(SRCROOT)/ThreeOneOSFive/helpers",
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -513,6 +516,9 @@
 				HEADER_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(SRCROOT)/ThreeOneOSFive",
+					"$(SRCROOT)/ThreeOneOSFive/kexploit",
+					"$(SRCROOT)/ThreeOneOSFive/exploit",
+					"$(SRCROOT)/ThreeOneOSFive/helpers",
 				);
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				LD_RUNPATH_SEARCH_PATHS = (
