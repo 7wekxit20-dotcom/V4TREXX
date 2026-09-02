@@ -1,4 +1,3 @@
-import Foundation
 import requests
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
