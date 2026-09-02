@@ -68,18 +68,20 @@ struct PatchProjectsView: View {
             ) { result in
                 if case .success(let urls) = result, let url = urls.first {
                     let accessing = url.startAccessingSecurityScopedResource()
-                    let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(url.lastPathComponent)
-                    try? FileManager.default.removeItem(at: tempURL)
-                    
-                    var readData: Data? = nil
-                    if accessing {
-                        try? FileManager.default.copyItem(at: url, to: tempURL)
-                        url.stopAccessingSecurityScopedResource()
-                        readData = try? Data(contentsOf: tempURL)
-                        try? FileManager.default.removeItem(at: tempURL)
+                    defer {
+                        if accessing {
+                            url.stopAccessingSecurityScopedResource()
+                        }
                     }
+
+                    var readData: Data? = try? Data(contentsOf: url)
                     if readData == nil {
-                        readData = try? Data(contentsOf: url)
+                        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(url.lastPathComponent)
+                        try? FileManager.default.removeItem(at: tempURL)
+                        if (try? FileManager.default.copyItem(at: url, to: tempURL)) != nil {
+                            readData = try? Data(contentsOf: tempURL)
+                            try? FileManager.default.removeItem(at: tempURL)
+                        }
                     }
 
                     if let data = readData {
@@ -88,7 +90,7 @@ struct PatchProjectsView: View {
                         store.importPackage(at: url)
                     }
                     selectedPackagePath = url.path
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                         store.reload()
                     }
                 }
