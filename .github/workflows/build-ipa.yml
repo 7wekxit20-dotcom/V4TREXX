@@ -21,12 +21,13 @@ jobs:
       - name: Build App with xcodebuild
         run: |
           xcodebuild -project ThreeOneOSFive.xcodeproj \
-                     -scheme ThreeOneOSFive \
+                     -target "V4RTEXX MANAGER" \
                      -configuration Release \
                      -sdk iphonesimulator \
                      -derivedDataPath build \
                      CODE_SIGNING_ALLOWED=NO \
                      CODE_SIGNING_REQUIRED=NO \
+                     CODE_SIGN_IDENTITY="" \
                      COMPILER_INDEX_STORE_ENABLE=NO
 
       - name: Package IPA
