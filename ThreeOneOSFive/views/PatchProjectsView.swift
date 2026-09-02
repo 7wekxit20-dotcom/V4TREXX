@@ -89,9 +89,11 @@ struct PatchProjectsView: View {
                     } else {
                         store.importPackage(at: url)
                     }
-                    selectedPackagePath = url.path
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                         store.reload()
+                        if let firstItem = store.items.first {
+                            selectedPackagePath = firstItem.packageURL.path
+                        }
                     }
                 }
             }

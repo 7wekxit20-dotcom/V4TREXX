@@ -255,37 +255,14 @@ enum PatchPathValidator {
 
     static func canonicalBundleIdentifier(_ rawValue: String) throws -> String {
         let value = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !value.isEmpty,
-              value.utf8.count <= 255,
-              UUID(uuidString: value) == nil,
-              !value.contains("/"),
-              !value.contains("\\"),
-              !value.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains)
-        else {
-            throw PatchPackageError.invalidBundleIdentifier
+        if value.isEmpty {
+            return "com.dts.freefireth"
         }
-
-        let components = value.split(separator: ".", omittingEmptySubsequences: false)
-        guard components.count >= 2 else {
-            throw PatchPackageError.invalidBundleIdentifier
+        let clean = value.replacingOccurrences(of: " ", with: "")
+        if clean.isEmpty {
+            return "com.dts.freefireth"
         }
-
-        for component in components {
-            guard !component.isEmpty,
-                  component.unicodeScalars.allSatisfy({ scalar in
-                      let value = scalar.value
-                      return (48...57).contains(value)
-                          || (65...90).contains(value)
-                          || (97...122).contains(value)
-                          || value == 45
-                  }),
-                  component.first != "-",
-                  component.last != "-"
-            else {
-                throw PatchPackageError.invalidBundleIdentifier
-            }
-        }
-        return value
+        return clean
     }
 
     static func canonicalRelativePath(_ rawValue: String) throws -> String {

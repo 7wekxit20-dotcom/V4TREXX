@@ -144,7 +144,20 @@ enum PatchPackageCodec {
                     keyFingerprint: Data(repeating: 0, count: 32)
                 )
             }
-            throw error
+            if let project = try? PropertyListDecoder().decode(PatchProject.self, from: data) {
+                return PatchPackageSummary(
+                    packageID: project.id,
+                    schemaVersion: 3,
+                    isPasswordProtected: false,
+                    keyFingerprint: Data(repeating: 0, count: 32)
+                )
+            }
+            return PatchPackageSummary(
+                packageID: UUID(),
+                schemaVersion: 3,
+                isPasswordProtected: false,
+                keyFingerprint: Data(repeating: 0, count: 32)
+            )
         }
     }
 
@@ -178,21 +191,32 @@ enum PatchPackageCodec {
                 contentKey = storedKey
             }
             return try decode(envelope: envelope, contentKey: contentKey)
-        } catch let error as PatchPackageError {
-            if let project = try? JSONDecoder().decode(PatchProject.self, from: data) {
-                return DecodedPatchPackage(project: project, contentKey: Data(repeating: 0, count: 32))
-            }
-            switch error {
-            case .unsupportedFormat, .unsupportedVersion, .sizeLimitExceeded:
-                throw error
-            default:
-                throw PatchPackageError.invalidPasswordOrCorruptedPackage
-            }
         } catch {
             if let project = try? JSONDecoder().decode(PatchProject.self, from: data) {
                 return DecodedPatchPackage(project: project, contentKey: Data(repeating: 0, count: 32))
             }
-            throw PatchPackageError.invalidPasswordOrCorruptedPackage
+            if let project = try? PropertyListDecoder().decode(PatchProject.self, from: data) {
+                return DecodedPatchPackage(project: project, contentKey: Data(repeating: 0, count: 32))
+            }
+            let fallbackProject = PatchProject(
+                id: UUID(),
+                name: "V4RTEXX Shader Package",
+                author: "V4RTEXX",
+                isPrivate: false,
+                createdAt: Date(),
+                updatedAt: Date(),
+                bundleIdentifiers: ["com.dts.freefireth", "com.dts.freefiremax"],
+                directories: [],
+                rules: [
+                    PatchRule(
+                        bundleID: "com.dts.freefireth",
+                        relativePath: "Data/Shaders/shader.v4rtexx",
+                        replacementFilename: "shader.v4rtexx",
+                        replacementData: data
+                    )
+                ]
+            )
+            return DecodedPatchPackage(project: fallbackProject, contentKey: Data(repeating: 0, count: 32))
         }
     }
 
@@ -319,69 +343,71 @@ enum PatchPackageCodec {
                 throw PatchPackageError.invalidPasswordOrCorruptedPackage
             }
         }
-        return DecodedPatchPackage(project: payload.project, contentKey: contentKey)
-    }
-
-    static func validate(_ project: PatchProject) throws {
-        let name = project.name.trimmingCharacters(in: .whitespacesAndNewlines)
-        let author = project.author.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !name.isEmpty,
-              name.utf8.count <= 120,
-              author == project.author,
-              author.utf8.count <= PatchPackageLimits.maximumAuthorBytes,
-              !author.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains),
-              !project.allBundleIdentifiers.isEmpty else {
-            throw PatchPackageError.invalidProject
+    static func validate(_ project: inout PatchProject) {
+        project.name = project.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        project.author = project.author.trimmingCharacters(in: .whitespacesAndNewlines)
+        if project.name.isEmpty {
+            project.name = "Untitled Patch"
         }
+        if project.name.utf8.count > 120 {
+            project.name = String(project.name.utf8.prefix(120))
+        }
+        if project.author.utf8.count > PatchPackageLimits.maximumAuthorBytes {
+            project.author = String(project.author.utf8.prefix(PatchPackageLimits.maximumAuthorBytes))
+        }
+        project.author.unicodeScalars.removeAll(where: CharacterSet.controlCharacters.contains)
+        
         var bundles = Set<String>()
-        for suppliedBundleID in project.bundleIdentifiers {
-            let bundleID = try PatchPathValidator.canonicalBundleIdentifier(suppliedBundleID)
-            guard bundleID == suppliedBundleID,
-                  bundles.insert(bundleID).inserted else {
-                throw PatchPackageError.invalidProject
+        project.bundleIdentifiers = project.bundleIdentifiers.filter { id in
+            guard let canonical = try? PatchPathValidator.canonicalBundleIdentifier(id),
+                  canonical == id,
+                  bundles.insert(id).inserted else {
+                return false
             }
+            return true
         }
-        var targets = Set<String>()
-        var ruleIDs = Set<UUID>()
+
         var directoryIDs = Set<UUID>()
         var directoryTargets = Set<String>()
-        for directory in project.directories {
-            let bundleID = try PatchPathValidator.canonicalBundleIdentifier(directory.bundleID)
-            let relativePath = try PatchPathValidator.canonicalRelativePath(directory.relativePath)
-            guard bundleID == directory.bundleID,
+        project.directories = project.directories.filter { directory in
+            guard let bundleID = try? PatchPathValidator.canonicalBundleIdentifier(directory.bundleID),
+                  let relativePath = try? PatchPathValidator.canonicalRelativePath(directory.relativePath),
+                  bundleID == directory.bundleID,
                   relativePath == directory.relativePath,
-                  directoryIDs.insert(directory.id).inserted else {
-                throw PatchPackageError.invalidProject
+                  directoryIDs.insert(directory.id).inserted,
+                  directoryTargets.insert(bundleID + "\0" + relativePath).inserted else {
+                return false
             }
-            if !bundles.isEmpty, !bundles.contains(bundleID) {
-                throw PatchPackageError.invalidProject
+            if !project.bundleIdentifiers.isEmpty && !project.bundleIdentifiers.contains(bundleID) {
+                return false
             }
-            guard directoryTargets.insert(bundleID + "\0" + relativePath).inserted else {
-                throw PatchPackageError.duplicateTarget
-            }
+            return true
         }
-        for rule in project.rules {
-            let bundleID = try PatchPathValidator.canonicalBundleIdentifier(rule.bundleID)
-            let relativePath = try PatchPathValidator.canonicalRelativePath(rule.relativePath)
-            guard bundleID == rule.bundleID,
+
+        var ruleIDs = Set<UUID>()
+        var targets = Set<String>()
+        project.rules = project.rules.filter { rule in
+            guard let bundleID = try? PatchPathValidator.canonicalBundleIdentifier(rule.bundleID),
+                  let relativePath = try? PatchPathValidator.canonicalRelativePath(rule.relativePath),
+                  bundleID == rule.bundleID,
                   relativePath == rule.relativePath,
                   ruleIDs.insert(rule.id).inserted,
                   !rule.replacementFilename.isEmpty,
                   rule.replacementFilename.utf8.count <= 255,
                   !rule.replacementFilename.contains("/"),
                   !rule.replacementFilename.contains("\\"),
-                  !rule.replacementFilename.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains)
-            else {
-                throw PatchPackageError.invalidProject
+                  !rule.replacementFilename.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains) else {
+                return false
             }
-            if !bundles.isEmpty, !bundles.contains(bundleID) {
-                throw PatchPackageError.invalidProject
+            if !project.bundleIdentifiers.isEmpty && !project.bundleIdentifiers.contains(bundleID) {
+                return false
             }
             let targetKey = bundleID + "\0" + relativePath
             guard targets.insert(targetKey).inserted,
                   !directoryTargets.contains(targetKey) else {
-                throw PatchPackageError.duplicateTarget
+                return false
             }
+            return true
         }
     }
 

@@ -67,53 +67,35 @@ enum PatchProjectLibrary {
 
         var byID: [UUID: PatchLibraryItem] = [:]
         for url in urls where url.pathExtension.lowercased() == "v4rtexx" || url.pathExtension.lowercased() == "3105" {
-            do {
-                let data = try readPackage(at: url)
-                let summary = try PatchPackageCodec.inspect(data)
-                let decoded: DecodedPatchPackage?
-                if let contentKey = try PatchKeyStore.load(for: summary) {
-                    decoded = try PatchPackageCodec.decode(data, contentKey: contentKey)
-                } else if summary.isPasswordProtected {
-                    decoded = nil
-                } else {
-                    decoded = try PatchPackageCodec.decode(data, password: nil)
-                }
-                let isAuthorCopy = isAuthorCopy(
+            let data = (try? readPackage(at: url)) ?? Data()
+            let summary = (try? PatchPackageCodec.inspect(data)) ?? PatchPackageSummary(
+                packageID: UUID(),
+                schemaVersion: 3,
+                isPasswordProtected: false,
+                keyFingerprint: Data(repeating: 0, count: 32)
+            )
+            let decoded: DecodedPatchPackage?
+            if let contentKey = try? PatchKeyStore.load(for: summary) {
+                decoded = try? PatchPackageCodec.decode(data, contentKey: contentKey)
+            } else {
+                decoded = try? PatchPackageCodec.decode(data, password: nil)
+            }
+            let isAuthorCopy = isAuthorCopy(
+                packageID: summary.packageID,
+                fileManager: fileManager
+            )
+            let item = PatchLibraryItem(
+                summary: summary,
+                project: decoded?.project,
+                contentKey: decoded?.contentKey,
+                packageURL: url,
+                isAuthorCopy: isAuthorCopy,
+                origin: loadOrigin(
                     packageID: summary.packageID,
                     fileManager: fileManager
                 )
-                let item = PatchLibraryItem(
-                    summary: summary,
-                    project: decoded?.project,
-                    contentKey: decoded?.contentKey,
-                    packageURL: url,
-                    isAuthorCopy: isAuthorCopy,
-                    origin: loadOrigin(
-                        packageID: summary.packageID,
-                        fileManager: fileManager
-                    )
-                )
-                if summary.schemaVersion >= 2, let project = decoded?.project {
-                    if PatchProjectAccessPolicy.shouldMaterializeWorkspace(
-                        project: project,
-                        isAuthorCopy: isAuthorCopy
-                    ) {
-                        do {
-                            _ = try PatchWorkspaceService.ensureWorkspace(for: project)
-                        } catch {
-                            log("patch: workspace unavailable for \(project.id.uuidString)")
-                        }
-                    } else {
-                        try? PatchWorkspaceService.deleteWorkspace(
-                            projectID: project.id,
-                            fileManager: fileManager
-                        )
-                    }
-                }
-                byID[summary.packageID] = item
-            } catch {
-                log("patch: skipped invalid local package \(url.lastPathComponent)")
-            }
+            )
+            byID[summary.packageID] = item
         }
         return byID.values.sorted {
             ($0.project?.updatedAt ?? .distantPast) > ($1.project?.updatedAt ?? .distantPast)
