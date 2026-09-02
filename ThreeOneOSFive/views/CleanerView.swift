@@ -1,14 +1,13 @@
 import SwiftUI
+import UIKit
 
 struct CleanerView: View {
-    @Environment(\.appLanguage) private var language
-    @AppStorage("v4rtexx.selected_game") private var selectedGame = "com.dts.freefireth"
     @State private var isScanning = false
     @State private var isCleaning = false
     @State private var freeFireCacheBytes: Int64 = 0
     @State private var freeFireMaxCacheBytes: Int64 = 0
-    @State private var freeFirePath = ""
-    @State private var freeFireMaxPath = ""
+    @State private var isFFInstalled = true
+    @State private var isFFMaxInstalled = true
     @State private var showAlert = false
     @State private var alertMessage = ""
     @State private var hasScanned = false
@@ -41,11 +40,12 @@ struct CleanerView: View {
                                 .font(.subheadline)
                                 .multilineTextAlignment(.center)
                                 .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
+                                .padding(.horizontal, 16)
                         }
-                        .padding(.vertical, 8)
+                        .padding(.vertical, 16)
 
-                        // DETECTED CACHE CARD FOR FREE FIRE
-                        VStack(alignment: .leading, spacing: 16) {
+                        // REAL CACHE METRICS CONTAINER
+                        VStack(spacing: 14) {
                             HStack {
                                 Text("REAL CONTAINER CACHE DETECTED")
                                     .font(.caption2.weight(.bold))
@@ -53,24 +53,12 @@ struct CleanerView: View {
                                 Spacer()
                                 if isScanning {
                                     ProgressView()
+                                        .scaleEffect(0.8)
                                         .tint(Color(red: 56/255, green: 189/255, blue: 248/255))
-                                        .controlSize(.small)
-                                } else {
-                                    Button {
-                                        scanRealContainerCaches()
-                                    } label: {
-                                        HStack(spacing: 4) {
-                                            Image(systemName: "arrow.clockwise")
-                                            Text("Rescan")
-                                        }
-                                        .font(.caption.weight(.bold))
-                                        .foregroundStyle(Color(red: 56/255, green: 189/255, blue: 248/255))
-                                    }
-                                    .buttonStyle(.plain)
                                 }
                             }
 
-                            // Free Fire Standard Row
+                            // Free Fire Row
                             HStack(spacing: 14) {
                                 Group {
                                     if let image = UIImage(named: "FreeFireLogo") ?? UIImage(contentsOfFile: "free fire.jpg") {
@@ -92,11 +80,16 @@ struct CleanerView: View {
                                     Text("com.dts.freefireth")
                                         .font(.caption2.monospaced())
                                         .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
+                                    if !isFFInstalled {
+                                        Text("⚠️ Not Installed on Device")
+                                            .font(.caption2.weight(.bold))
+                                            .foregroundStyle(Color.red)
+                                    }
                                 }
 
                                 Spacer()
 
-                                Text(sizeText(freeFireCacheBytes))
+                                Text(isFFInstalled ? sizeText(freeFireCacheBytes) : "N/A")
                                     .font(.system(.subheadline, design: .monospaced).weight(.bold))
                                     .foregroundStyle(freeFireCacheBytes > 0 ? Color(red: 56/255, green: 189/255, blue: 248/255) : Color(red: 148/255, green: 163/255, blue: 184/255))
                             }
@@ -126,11 +119,16 @@ struct CleanerView: View {
                                     Text("com.dts.freefiremax")
                                         .font(.caption2.monospaced())
                                         .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
+                                    if !isFFMaxInstalled {
+                                        Text("⚠️ Not Installed on Device")
+                                            .font(.caption2.weight(.bold))
+                                            .foregroundStyle(Color.red)
+                                    }
                                 }
 
                                 Spacer()
 
-                                Text(sizeText(freeFireMaxCacheBytes))
+                                Text(isFFMaxInstalled ? sizeText(freeFireMaxCacheBytes) : "N/A")
                                     .font(.system(.subheadline, design: .monospaced).weight(.bold))
                                     .foregroundStyle(freeFireMaxCacheBytes > 0 ? Color(red: 56/255, green: 189/255, blue: 248/255) : Color(red: 148/255, green: 163/255, blue: 184/255))
                             }
@@ -172,12 +170,23 @@ struct CleanerView: View {
                                     )
                                 )
                                 .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                                .shadow(color: Color(red: 56/255, green: 189/255, blue: 248/255).opacity(0.35), radius: 12, x: 0, y: 6)
+                                .shadow(color: Color(red: 56/255, green: 189/255, blue: 248/255).opacity(0.35), radius: 10, x: 0, y: 4)
                             }
                             .buttonStyle(.plain)
-                            .disabled(isCleaning)
+                            .disabled(isCleaning || isScanning || (freeFireCacheBytes + freeFireMaxCacheBytes == 0))
+
+                            Button {
+                                scanRealContainerCaches()
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "arrow.clockwise")
+                                    Text("Re-scan Containers")
+                                }
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(Color(red: 56/255, green: 189/255, blue: 248/255))
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .padding(.top, 8)
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 16)
@@ -204,8 +213,11 @@ struct CleanerView: View {
         DispatchQueue.global(qos: .userInitiated).async {
             var ffBytes: Int64 = 0
             var ffMaxBytes: Int64 = 0
+            var ffFound = false
+            var ffMaxFound = false
 
             if let pathFF = ContainerStore.resolveAppContainerPath(bundleID: "com.dts.freefireth") {
+                ffFound = true
                 let url = URL(fileURLWithPath: pathFF, isDirectory: true)
                 if let usage = try? LimitedCleanerService.scan(containerURL: url, rootValidator: { _ in true }) {
                     ffBytes = usage.totalBytes
@@ -213,6 +225,7 @@ struct CleanerView: View {
             }
 
             if let pathMax = ContainerStore.resolveAppContainerPath(bundleID: "com.dts.freefiremax") {
+                ffMaxFound = true
                 let url = URL(fileURLWithPath: pathMax, isDirectory: true)
                 if let usage = try? LimitedCleanerService.scan(containerURL: url, rootValidator: { _ in true }) {
                     ffMaxBytes = usage.totalBytes
@@ -220,6 +233,8 @@ struct CleanerView: View {
             }
 
             DispatchQueue.main.async {
+                self.isFFInstalled = ffFound
+                self.isFFMaxInstalled = ffMaxFound
                 self.freeFireCacheBytes = ffBytes
                 self.freeFireMaxCacheBytes = ffMaxBytes
                 self.isScanning = false
@@ -244,13 +259,17 @@ struct CleanerView: View {
                 self.freeFireCacheBytes = 0
                 self.freeFireMaxCacheBytes = 0
                 self.isCleaning = false
-                self.alertMessage = "Successfully cleared \(self.sizeText(totalCleaned)) of Free Fire cache data!"
+                self.alertMessage = "Successfully cleaned \(sizeText(totalCleaned)) of container cache!"
                 self.showAlert = true
             }
         }
     }
 
-    private func sizeText(_ byteCount: Int64) -> String {
-        ByteCountFormatter.string(fromByteCount: byteCount, countStyle: .file)
+    private func sizeText(_ bytes: Int64) -> String {
+        if bytes == 0 { return "0 KB" }
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useMB, .useKB, .useGB]
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: bytes)
     }
 }

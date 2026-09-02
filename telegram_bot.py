@@ -182,7 +182,8 @@ def callback_listener(call):
         for key_str, info in list(owner_keys.items())[:15]:
             status_icon = "🟢" if info.get("status") == "Active" else "🔴"
             bound_count = len(info.get("bound_devices", []))
-            usage_icon = f"📲 Used ({bound_count})" if bound_count > 0 else "🆓 Unused"
+            is_manual_used = info.get("manual_used", False)
+            usage_icon = f"📲 Used ({bound_count})" if (bound_count > 0 or is_manual_used) else "🆓 Unused"
             btn_label = f"{status_icon} Key: {key_str} [{usage_icon}]"
             markup.add(InlineKeyboardButton(btn_label, callback_data=f"keyinfo_{key_str}"))
 
@@ -197,9 +198,14 @@ def callback_listener(call):
             status = info.get("status", "Active")
             duration = info.get("duration", "Lifetime")
             scope = info.get("scope", "1 Device")
+            is_manual_used = info.get("manual_used", False)
 
             status_text = "🟢 *ACTIVE*" if status == "Active" else "🔴 *REVOKED*"
-            usage_text = f"📲 *Used* ({len(bound_devices)} device bound)" if bound_devices else "🆓 *Unused* (Not activated yet)"
+            if bound_devices or is_manual_used:
+                count_str = f"{max(len(bound_devices), 1)} device(s) bound"
+                usage_text = f"📲 *Used* ({count_str})"
+            else:
+                usage_text = "🆓 *Unused* (Not activated yet)"
 
             details = (
                 f"🔑 *KEY INFORMATION*\n\n"
@@ -213,10 +219,15 @@ def callback_listener(call):
                 details += "*Bound Device UUID(s):*\n"
                 for idx, uuid in enumerate(bound_devices, 1):
                     details += f"{idx}. `{uuid}`\n"
+            elif is_manual_used:
+                details += "_Device bound via V4RTEXX App Activation._"
             else:
                 details += "_No devices currently bound to this key._"
 
             markup = InlineKeyboardMarkup(row_width=1)
+            if not bound_devices and not is_manual_used:
+                markup.add(InlineKeyboardButton("📲 Mark Key as Used / Bound", callback_data=f"bindmanual_{key_str}"))
+
             if status == "Active":
                 markup.add(InlineKeyboardButton("❌ Revoke Key", callback_data=f"revoke_{key_str}"))
             markup.add(InlineKeyboardButton("🗑️ Delete Key Permanently", callback_data=f"delete_{key_str}"))
@@ -224,6 +235,21 @@ def callback_listener(call):
             bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=details, parse_mode="Markdown", reply_markup=markup)
         else:
             bot.send_message(chat_id, "⚠️ Key not found.")
+
+    elif data.startswith("bindmanual_"):
+        key_to_bind = data.replace("bindmanual_", "")
+        if key_to_bind in keys_db:
+            keys_db[key_to_bind]["manual_used"] = True
+            if "bound_devices" not in keys_db[key_to_bind] or not keys_db[key_to_bind]["bound_devices"]:
+                keys_db[key_to_bind]["bound_devices"] = ["V4RTEXX-DEVICE-BOUND-01"]
+            save_keys(keys_db)
+            bound_msg = f"📲 *Key Status Updated*\n\nKey `{key_to_bind}` has been marked as *Used* & bound to device."
+        else:
+            bound_msg = "⚠️ Key not found."
+
+        markup = InlineKeyboardMarkup()
+        markup.add(InlineKeyboardButton("📋 Back to Key List", callback_data="manage_keys"))
+        bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=bound_msg, parse_mode="Markdown", reply_markup=markup)
 
     elif data.startswith("revoke_"):
         key_to_revoke = data.replace("revoke_", "")

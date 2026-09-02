@@ -320,8 +320,13 @@ struct InjectView: View {
             if let targetItem = store.items.first(where: { $0.packageURL.path == selectedPackagePath }),
                let proj = targetItem.project {
                 do {
-                    let receipt = try DevicePatchService.apply(project: proj)
-                    try DevicePatchService.restore(receipt: receipt, allowChangedTargets: true)
+                    if let receipt = DevicePatchService.latestReceipt(projectID: proj.id) {
+                        try DevicePatchService.restore(receipt: receipt, allowChangedTargets: true)
+                    } else {
+                        // Apply and restore as fallback to revert container files to baseline
+                        let receipt = try DevicePatchService.apply(project: proj)
+                        try DevicePatchService.restore(receipt: receipt, allowChangedTargets: true)
+                    }
                 } catch {
                     log("restore error: \(error)")
                 }
