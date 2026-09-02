@@ -38,7 +38,7 @@
   "HBGIGR3V3AQVQZNXPAV": {
     "duration": "1 Day",
     "scope": "1 Device (Bound)",
-    "status": "Active",
+    "status": "Revoked",
     "owner": "8364896923",
     "bound_devices": []
   }

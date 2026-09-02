@@ -69,6 +69,9 @@ struct PatchProjectsView: View {
                     passwordIsProtected: false,
                     onSave: { project, password in
                         store.create(project: project, password: password)
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            store.reload()
+                        }
                     }
                 )
             }

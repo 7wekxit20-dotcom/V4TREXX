@@ -134,11 +134,13 @@ def callback_listener(call):
             bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=text, parse_mode="Markdown", reply_markup=markup)
             return
 
-        text = f"ℹ️ *Your Keys ({len(owner_keys)})*\nSelect a key to view detailed device binding info & status:"
+        text = f"ℹ️ *Your Keys ({len(owner_keys)})*\nSelect a key to view detailed activation & bound device UUID info:"
         markup = InlineKeyboardMarkup(row_width=1)
         for key_str, info in list(owner_keys.items())[:15]:
             status_icon = "🟢" if info.get("status") == "Active" else "🔴"
-            btn_label = f"{status_icon} Key: {key_str} ({info.get('duration', 'Lifetime')})"
+            bound_count = len(info.get("bound_devices", []))
+            usage_icon = "📲 Used" if bound_count > 0 else "🆓 Unused"
+            btn_label = f"{status_icon} Key: {key_str} [{usage_icon}]"
             markup.add(InlineKeyboardButton(btn_label, callback_data=f"keyinfo_{key_str}"))
 
         markup.add(InlineKeyboardButton("🔙 Main Menu", callback_data="main_menu"))
@@ -154,17 +156,18 @@ def callback_listener(call):
             scope = info.get("scope", "1 Device")
 
             status_text = "🟢 *ACTIVE*" if status == "Active" else "🔴 *REVOKED*"
+            usage_text = f"📲 *Used* ({len(bound_devices)} device bound)" if bound_devices else "🆓 *Unused* (Not activated yet)"
 
             details = (
-                f"🔑 *KEY DETAILS*\n\n"
+                f"🔑 *KEY INFORMATION*\n\n"
                 f"• *Key:* `{key_str}`\n"
                 f"• *Status:* {status_text}\n"
+                f"• *Usage:* {usage_text}\n"
                 f"• *Duration:* `{duration}`\n"
-                f"• *Scope:* `{scope}`\n"
-                f"• *Bound Devices:* `{len(bound_devices)} UUID(s)`\n\n"
+                f"• *Scope:* `{scope}`\n\n"
             )
             if bound_devices:
-                details += "*Bound Device UUIDs:*\n"
+                details += "*Bound Device UUID(s):*\n"
                 for idx, uuid in enumerate(bound_devices, 1):
                     details += f"{idx}. `{uuid}`\n"
             else:
@@ -173,6 +176,8 @@ def callback_listener(call):
             markup = InlineKeyboardMarkup(row_width=1)
             if status == "Active":
                 markup.add(InlineKeyboardButton("❌ Revoke Key", callback_data=f"revoke_{key_str}"))
+            else:
+                markup.add(InlineKeyboardButton("🗑️ Delete Key Permanently", callback_data=f"delete_{key_str}"))
             markup.add(InlineKeyboardButton("🔙 Back to Key List", callback_data="manage_keys"))
             bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=details, parse_mode="Markdown", reply_markup=markup)
         else:
@@ -183,14 +188,31 @@ def callback_listener(call):
         if key_to_revoke in keys_db:
             keys_db[key_to_revoke]["status"] = "Revoked"
             save_keys(keys_db)
-            revoked_text = f"🗑️ *Key Revoked*\n\nKey `{key_to_revoke}` has been set to Revoked."
+            revoked_text = f"🚫 *Key Revoked*\n\nKey `{key_to_revoke}` has been set to Revoked.\n\nYou can now delete it permanently if desired."
+            markup = InlineKeyboardMarkup(row_width=1)
+            markup.add(InlineKeyboardButton("🗑️ Delete Key Permanently", callback_data=f"delete_{key_to_revoke}"))
+            markup.add(InlineKeyboardButton("📋 Back to Key List", callback_data="manage_keys"))
+            markup.add(InlineKeyboardButton("🔙 Main Menu", callback_data="main_menu"))
+            bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=revoked_text, parse_mode="Markdown", reply_markup=markup)
         else:
             revoked_text = "⚠️ Key not found."
+            markup = InlineKeyboardMarkup()
+            markup.add(InlineKeyboardButton("🔙 Main Menu", callback_data="main_menu"))
+            bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=revoked_text, parse_mode="Markdown", reply_markup=markup)
+
+    elif data.startswith("delete_"):
+        key_to_delete = data.replace("delete_", "")
+        if key_to_delete in keys_db:
+            del keys_db[key_to_delete]
+            save_keys(keys_db)
+            deleted_text = f"🗑️ *Key Permanently Deleted*\n\nKey `{key_to_delete}` has been completely removed from database."
+        else:
+            deleted_text = "⚠️ Key not found."
 
         markup = InlineKeyboardMarkup()
         markup.add(InlineKeyboardButton("📋 Back to Key List", callback_data="manage_keys"))
         markup.add(InlineKeyboardButton("🔙 Main Menu", callback_data="main_menu"))
-        bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=revoked_text, parse_mode="Markdown", reply_markup=markup)
+        bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=deleted_text, parse_mode="Markdown", reply_markup=markup)
 
 def process_custom_duration(message):
     chat_id = message.chat.id

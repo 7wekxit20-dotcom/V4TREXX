@@ -79,7 +79,7 @@ struct PatchProjectEditorView: View {
                 Section {
                     ForEach(rules) { rule in
                         Button {
-                            ruleEditor = PatchRuleEditorContext(rule: rule)
+                            openRuleEditor(rule: rule)
                         } label: {
                             HStack(spacing: 10) {
                                 ruleRow(rule)
@@ -96,7 +96,7 @@ struct PatchProjectEditorView: View {
                     .onDelete { rules.remove(atOffsets: $0) }
 
                     Button {
-                        ruleEditor = PatchRuleEditorContext(rule: nil)
+                        openRuleEditor(rule: nil)
                     } label: {
                         HStack {
                             Image(systemName: "plus.circle.fill")
@@ -211,43 +211,26 @@ struct PatchProjectEditorView: View {
             return
         }
         guard projectAuthor.utf8.count <= PatchPackageLimits.maximumAuthorBytes,
-              !projectAuthor.unicodeScalars.contains(
-                where: CharacterSet.controlCharacters.contains
-              ) else {
-            validationMessageKey = "patch.error.invalid_author"
-            return
-        }
+        name = projectName
         author = projectAuthor
         if existingProject == nil, isPrivate, password.isEmpty {
             validationMessageKey = "patch.error.private_password"
             return
         }
-        if existingProject == nil, initialDraft == nil {
-            do {
-                let canonical = try PatchPathValidator.canonicalBundleIdentifier(bundleID)
-                guard canonical == bundleID.trimmingCharacters(in: .whitespacesAndNewlines) else {
-                    throw PatchPackageError.invalidBundleIdentifier
-                }
-                bundleID = canonical
-                bundleIdentifiers = [canonical]
-            } catch let error as PatchPackageError {
-                validationMessageKey = error.localizationKey
-                return
-            } catch {
-                validationMessageKey = "patch.error.invalid_bundle"
-                return
-            }
+        
+        var targetBundle = bundleID.trimmingCharacters(in: .whitespacesAndNewlines)
+        if targetBundle.isEmpty {
+            targetBundle = "com.dts.freefireth"
         }
-        guard !bundleIdentifiers.isEmpty || !rules.isEmpty || !directories.isEmpty else {
-            validationMessageKey = "patch.error.invalid_project"
-            return
-        }
+        bundleID = targetBundle
+        bundleIdentifiers = [targetBundle]
+        
         guard let incompleteRule = rules.first(where: { !$0.hasReplacement }) else {
             saveCompleteProject(named: projectName)
             return
         }
         validationMessageKey = "patch.error.replacement_required"
-        ruleEditor = PatchRuleEditorContext(rule: incompleteRule)
+        openRuleEditor(rule: incompleteRule)
     }
 
     private func saveCompleteProject(named projectName: String) {
@@ -277,6 +260,7 @@ struct PatchProjectEditorView: View {
 private struct PatchRuleEditorContext: Identifiable {
     let id = UUID()
     let rule: PatchRule?
+    let defaultBundleID: String
 }
 
 struct PatchRuleEditorView: View {
@@ -293,10 +277,11 @@ struct PatchRuleEditorView: View {
     @State private var isImporting = false
     @State private var validationMessageKey: String?
 
-    init(rule: PatchRule?, onSave: @escaping (PatchRule) -> Void) {
+    init(rule: PatchRule?, defaultBundleID: String = "com.dts.freefireth", onSave: @escaping (PatchRule) -> Void) {
         originalRule = rule
         self.onSave = onSave
-        _bundleID = State(initialValue: rule?.bundleID ?? "")
+        let initialBundle = rule?.bundleID ?? (defaultBundleID.isEmpty ? "com.dts.freefireth" : defaultBundleID)
+        _bundleID = State(initialValue: initialBundle)
         _relativePath = State(initialValue: rule?.relativePath ?? "")
         _replacementFilename = State(initialValue: rule?.replacementFilename ?? "")
         _replacementData = State(initialValue: rule?.replacementData ?? Data())
