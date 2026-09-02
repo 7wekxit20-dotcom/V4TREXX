@@ -83,7 +83,7 @@ struct KeyActivationView: View {
                         )
                     }
 
-                    // Strict "INVALID KEY" Error Alert
+                    // Strict Error Alert
                     if let errorMessage {
                         HStack(spacing: 6) {
                             Image(systemName: "exclamationmark.triangle.fill")
@@ -144,7 +144,7 @@ struct KeyActivationView: View {
 
                 Spacer()
 
-                Text("V4RTEXX MANAGER • KeyAuth Secured")
+                Text("V4RTEXX MANAGER • KeyAuth Server Verified")
                     .font(.caption2)
                     .foregroundStyle(Color(white: 0.5))
                     .padding(.bottom, 16)
@@ -153,17 +153,22 @@ struct KeyActivationView: View {
     }
 
     private func activateKey() {
-        guard !keyText.isEmpty else {
+        let trimmed = keyText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
             errorMessage = "INVALID KEY"
             return
         }
+
         isProcessing = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-            if KeySystem.activate(with: keyText) {
+        errorMessage = nil
+
+        KeySystem.verifyKeyAuth(key: trimmed) { result in
+            isProcessing = false
+            switch result {
+            case .success:
                 onActivated()
-            } else {
-                errorMessage = "INVALID KEY"
-                isProcessing = false
+            case .failure(let err):
+                errorMessage = err
             }
         }
     }

@@ -9,6 +9,17 @@ struct KeyAuthAppConfig {
     static let apiUrl = "https://keyauth.win/api/1.2/"
 }
 
+private struct KeyAuthInitResponse: Decodable {
+    let success: Bool
+    let message: String?
+    let sessionid: String?
+}
+
+private struct KeyAuthLicenseResponse: Decodable {
+    let success: Bool
+    let message: String?
+}
+
 struct KeySystem {
     static let storageKey = "v4rtexx.key_activated"
     static let savedKeyStorageKey = "v4rtexx.saved_key"
@@ -31,19 +42,79 @@ struct KeySystem {
         return uuid
     }
 
-    static func validateKey(_ key: String) -> Bool {
-        let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
-        return !trimmed.isEmpty
-    }
+    static func verifyKeyAuth(key: String, completion: @escaping (Result<Void, String>) -> Void) {
+        let trimmedKey = key.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedKey.isEmpty else {
+            completion(.failure("INVALID KEY"))
+            return
+        }
 
-    static func activate(with key: String) -> Bool {
-        let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard validateKey(trimmed) else { return false }
-        
-        UserDefaults.standard.set(true, forKey: storageKey)
-        UserDefaults.standard.set(trimmed, forKey: savedKeyStorageKey)
-        _ = deviceUUID // Ensure device UUID is cached
-        return true
+        // 1. Initialize KeyAuth session
+        var initComponents = URLComponents(string: KeyAuthAppConfig.apiUrl)!
+        initComponents.queryItems = [
+            URLQueryItem(name: "type", value: "init"),
+            URLQueryItem(name: "name", value: KeyAuthAppConfig.name),
+            URLQueryItem(name: "ownerid", value: KeyAuthAppConfig.ownerid),
+            URLQueryItem(name: "secret", value: KeyAuthAppConfig.secret),
+            URLQueryItem(name: "version", value: KeyAuthAppConfig.version)
+        ]
+
+        guard let initURL = initComponents.url else {
+            completion(.failure("INVALID KEY"))
+            return
+        }
+
+        let initTask = URLSession.shared.dataTask(with: initURL) { initData, _, initError in
+            guard let initData = initData,
+                  let initResponse = try? JSONDecoder().decode(KeyAuthInitResponse.self, from: initData),
+                  initResponse.success,
+                  let sessionID = initResponse.sessionid else {
+                DispatchQueue.main.async {
+                    completion(.failure("INVALID KEY"))
+                }
+                return
+            }
+
+            // 2. Validate License Key with KeyAuth session
+            var licenseComponents = URLComponents(string: KeyAuthAppConfig.apiUrl)!
+            licenseComponents.queryItems = [
+                URLQueryItem(name: "type", value: "license"),
+                URLQueryItem(name: "key", value: trimmedKey),
+                URLQueryItem(name: "hwid", value: deviceUUID),
+                URLQueryItem(name: "sessionid", value: sessionID),
+                URLQueryItem(name: "name", value: KeyAuthAppConfig.name),
+                URLQueryItem(name: "ownerid", value: KeyAuthAppConfig.ownerid)
+            ]
+
+            guard let licenseURL = licenseComponents.url else {
+                DispatchQueue.main.async {
+                    completion(.failure("INVALID KEY"))
+                }
+                return
+            }
+
+            let licenseTask = URLSession.shared.dataTask(with: licenseURL) { licData, _, licError in
+                DispatchQueue.main.async {
+                    guard let licData = licData,
+                          let licResponse = try? JSONDecoder().decode(KeyAuthLicenseResponse.self, from: licData) else {
+                        completion(.failure("INVALID KEY"))
+                        return
+                    }
+
+                    if licResponse.success {
+                        // Key is valid on KeyAuth server! Save state.
+                        UserDefaults.standard.set(true, forKey: storageKey)
+                        UserDefaults.standard.set(trimmedKey, forKey: savedKeyStorageKey)
+                        completion(.success(()))
+                    } else {
+                        let errMsg = licResponse.message?.uppercased() ?? "INVALID KEY"
+                        completion(.failure(errMsg.contains("KEY") ? errMsg : "INVALID KEY"))
+                    }
+                }
+            }
+            licenseTask.resume()
+        }
+        initTask.resume()
     }
 
     static func resetActivation() {

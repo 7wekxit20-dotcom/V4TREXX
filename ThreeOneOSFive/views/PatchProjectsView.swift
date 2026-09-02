@@ -4,7 +4,7 @@ import UniformTypeIdentifiers
 
 private struct PatchFileUTTypes {
     static let v4rtexx = UTType(filenameExtension: "v4rtexx") ?? UTType(importedAs: "com.v4rtexx.patch-package")
-    static let allowedTypes: [UTType] = [v4rtexx]
+    static let allowedTypes: [UTType] = [v4rtexx, .data, .item]
 }
 
 struct PatchProjectsView: View {
@@ -68,15 +68,28 @@ struct PatchProjectsView: View {
             ) { result in
                 if case .success(let urls) = result, let url = urls.first {
                     let accessing = url.startAccessingSecurityScopedResource()
-                    defer {
-                        if accessing { url.stopAccessingSecurityScopedResource() }
+                    let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(url.lastPathComponent)
+                    try? FileManager.default.removeItem(at: tempURL)
+                    
+                    var readData: Data? = nil
+                    if accessing {
+                        try? FileManager.default.copyItem(at: url, to: tempURL)
+                        url.stopAccessingSecurityScopedResource()
+                        readData = try? Data(contentsOf: tempURL)
+                        try? FileManager.default.removeItem(at: tempURL)
                     }
-                    if let data = try? Data(contentsOf: url) {
+                    if readData == nil {
+                        readData = try? Data(contentsOf: url)
+                    }
+
+                    if let data = readData {
                         _ = store.importPackage(data: data)
-                        selectedPackagePath = url.path
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                            store.reload()
-                        }
+                    } else {
+                        store.importPackage(at: url)
+                    }
+                    selectedPackagePath = url.path
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        store.reload()
                     }
                 }
             }

@@ -127,13 +127,25 @@ enum PatchPackageCodec {
     }
 
     static func inspect(_ data: Data) throws -> PatchPackageSummary {
-        let envelope = try parseEnvelope(data)
-        return PatchPackageSummary(
-            packageID: envelope.packageID,
-            schemaVersion: envelope.schemaVersion,
-            isPasswordProtected: envelope.isPasswordProtected,
-            keyFingerprint: envelope.keyFingerprint
-        )
+        do {
+            let envelope = try parseEnvelope(data)
+            return PatchPackageSummary(
+                packageID: envelope.packageID,
+                schemaVersion: envelope.schemaVersion,
+                isPasswordProtected: envelope.isPasswordProtected,
+                keyFingerprint: envelope.keyFingerprint
+            )
+        } catch {
+            if let project = try? JSONDecoder().decode(PatchProject.self, from: data) {
+                return PatchPackageSummary(
+                    packageID: project.id,
+                    schemaVersion: 3,
+                    isPasswordProtected: false,
+                    keyFingerprint: Data(repeating: 0, count: 32)
+                )
+            }
+            throw error
+        }
     }
 
     static func decode(_ data: Data, password: String?) throws -> DecodedPatchPackage {
@@ -167,6 +179,9 @@ enum PatchPackageCodec {
             }
             return try decode(envelope: envelope, contentKey: contentKey)
         } catch let error as PatchPackageError {
+            if let project = try? JSONDecoder().decode(PatchProject.self, from: data) {
+                return DecodedPatchPackage(project: project, contentKey: Data(repeating: 0, count: 32))
+            }
             switch error {
             case .unsupportedFormat, .unsupportedVersion, .sizeLimitExceeded:
                 throw error
@@ -174,6 +189,9 @@ enum PatchPackageCodec {
                 throw PatchPackageError.invalidPasswordOrCorruptedPackage
             }
         } catch {
+            if let project = try? JSONDecoder().decode(PatchProject.self, from: data) {
+                return DecodedPatchPackage(project: project, contentKey: Data(repeating: 0, count: 32))
+            }
             throw PatchPackageError.invalidPasswordOrCorruptedPackage
         }
     }
