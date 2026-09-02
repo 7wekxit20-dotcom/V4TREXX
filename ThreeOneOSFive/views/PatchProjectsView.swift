@@ -61,41 +61,33 @@ struct PatchProjectsView: View {
             }
             .navigationTitle("V4RTEXX Library")
             .navigationBarTitleDisplayMode(.inline)
-            .fileImporter(
-                isPresented: $showImporter,
-                allowedContentTypes: [.item, .data, .content],
-                allowsMultipleSelection: false
-            ) { result in
-                if case .success(let urls) = result, let url = urls.first {
-                    let accessing = url.startAccessingSecurityScopedResource()
-                    defer {
-                        if accessing {
-                            url.stopAccessingSecurityScopedResource()
+            .sheet(isPresented: $showImporter) {
+                FileDocumentPicker(
+                    allowedContentTypes: [
+                        UTType(filenameExtension: "v4rtexx") ?? .data,
+                        UTType(filenameExtension: "3105") ?? .data,
+                        .data,
+                        .item
+                    ],
+                    copiesSelectedDocument: true,
+                    allowsMultipleSelection: false,
+                    onSelection: { result in
+                        showImporter = false
+                        if case .success(let urls) = result, let url = urls.first {
+                            store.importPackage(at: url)
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                                store.reload()
+                                if let firstItem = store.items.first {
+                                    selectedPackagePath = firstItem.packageURL.path
+                                }
+                            }
                         }
+                    },
+                    onCancel: {
+                        showImporter = false
                     }
-
-                    var readData: Data? = try? Data(contentsOf: url)
-                    if readData == nil {
-                        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(url.lastPathComponent)
-                        try? FileManager.default.removeItem(at: tempURL)
-                        if (try? FileManager.default.copyItem(at: url, to: tempURL)) != nil {
-                            readData = try? Data(contentsOf: tempURL)
-                            try? FileManager.default.removeItem(at: tempURL)
-                        }
-                    }
-
-                    if let data = readData {
-                        _ = store.importPackage(data: data)
-                    } else {
-                        store.importPackage(at: url)
-                    }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        store.reload()
-                        if let firstItem = store.items.first {
-                            selectedPackagePath = firstItem.packageURL.path
-                        }
-                    }
-                }
+                )
+                .ignoresSafeArea()
             }
             .sheet(isPresented: $showEditor) {
                 PatchProjectEditorView(

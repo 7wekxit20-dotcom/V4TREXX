@@ -105,19 +105,12 @@ final class PatchProjectStore: ObservableObject {
     func importPackage(at sourceURL: URL) {
         isBusy = true
         let hasAccess = sourceURL.startAccessingSecurityScopedResource()
-        let fileData = try? Data(contentsOf: sourceURL)
-        if hasAccess {
-            sourceURL.stopAccessingSecurityScopedResource()
-        }
-
-        guard let data = fileData else {
-            isBusy = false
-            present(.unsupportedFormat)
-            return
-        }
-
         Task.detached(priority: .userInitiated) { [weak self] in
+            defer {
+                if hasAccess { sourceURL.stopAccessingSecurityScopedResource() }
+            }
             do {
+                let data = try PatchProjectLibrary.readPackage(at: sourceURL)
                 let summary = try PatchPackageCodec.inspect(data)
                 let existingURL = await self?.existingPackageURL(for: summary.packageID)
                 if let pending = try Self.persistImportedPackage(
