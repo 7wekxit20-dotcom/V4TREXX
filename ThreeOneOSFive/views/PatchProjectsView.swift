@@ -41,7 +41,7 @@ struct PatchProjectsView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(red: 10/255, green: 14/255, blue: 23/255)
+                Color.black
                     .ignoresSafeArea()
 
                 VStack(alignment: .leading, spacing: 14) {
@@ -68,10 +68,6 @@ struct PatchProjectsView: View {
                 allowsMultipleSelection: false
             ) { result in
                 if case .success(let urls) = result, let url = urls.first {
-                    let accessing = url.startAccessingSecurityScopedResource()
-                    defer {
-                        if accessing { url.stopAccessingSecurityScopedResource() }
-                    }
                     store.importPackage(at: url)
                     selectedPackagePath = url.path
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
@@ -110,11 +106,11 @@ struct PatchProjectsView: View {
         VStack(alignment: .leading, spacing: 4) {
             Text("PACKAGE LIBRARY")
                 .font(.caption2.weight(.bold))
-                .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
+                .foregroundStyle(Color(white: 0.7))
 
             Text("Import encrypted V4RTEXX packages from your admin dashboard.")
                 .font(.caption)
-                .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
+                .foregroundStyle(Color(white: 0.6))
         }
     }
 
@@ -129,17 +125,11 @@ struct PatchProjectsView: View {
                         .fontWeight(.bold)
                 }
                 .font(.subheadline)
-                .foregroundStyle(Color.black)
+                .foregroundStyle(.black)
                 .frame(maxWidth: .infinity, minHeight: 42)
-                .background(
-                    LinearGradient(
-                        colors: [Color(red: 56/255, green: 189/255, blue: 248/255), Color(red: 14/255, green: 165/255, blue: 233/255)],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
+                .background(Color.white)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .shadow(color: Color(red: 56/255, green: 189/255, blue: 248/255).opacity(0.3), radius: 6, x: 0, y: 3)
+                .shadow(color: Color.white.opacity(0.2), radius: 6, x: 0, y: 3)
             }
             .buttonStyle(.plain)
 
@@ -154,13 +144,13 @@ struct PatchProjectsView: View {
                         .fontWeight(.semibold)
                 }
                 .font(.caption)
-                .foregroundStyle(Color(red: 56/255, green: 189/255, blue: 248/255))
+                .foregroundStyle(.white)
                 .frame(maxWidth: .infinity, minHeight: 42)
-                .background(Color(red: 22/255, green: 30/255, blue: 46/255))
+                .background(Color(white: 0.12))
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(Color(red: 56/255, green: 189/255, blue: 248/255).opacity(0.3), lineWidth: 1)
+                        .stroke(Color.white.opacity(0.3), lineWidth: 1)
                 )
             }
             .buttonStyle(.plain)
@@ -189,11 +179,11 @@ struct PatchProjectsView: View {
             Spacer()
             ZStack {
                 Circle()
-                    .fill(Color(red: 22/255, green: 30/255, blue: 46/255))
+                    .fill(Color(white: 0.12))
                     .frame(width: 60, height: 60)
                 Image(systemName: "cube.box.fill")
                     .font(.system(size: 26))
-                    .foregroundStyle(Color(red: 56/255, green: 189/255, blue: 248/255))
+                    .foregroundStyle(.white)
             }
 
             Text("No Packages Imported")
@@ -203,7 +193,7 @@ struct PatchProjectsView: View {
             Text("Import a .v4rtexx package file to select it for injection.")
                 .font(.caption)
                 .multilineTextAlignment(.center)
-                .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
+                .foregroundStyle(Color(white: 0.6))
                 .padding(.horizontal, 20)
 
             Button {
@@ -214,13 +204,13 @@ struct PatchProjectsView: View {
                     Text("Import Package")
                 }
                 .font(.caption.weight(.bold))
-                .foregroundStyle(Color(red: 56/255, green: 189/255, blue: 248/255))
+                .foregroundStyle(.white)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
-                .background(Color(red: 22/255, green: 30/255, blue: 46/255))
+                .background(Color(white: 0.15))
                 .clipShape(Capsule())
                 .overlay(
-                    Capsule().stroke(Color(red: 56/255, green: 189/255, blue: 248/255).opacity(0.4), lineWidth: 1)
+                    Capsule().stroke(Color.white.opacity(0.4), lineWidth: 1)
                 )
             }
             .buttonStyle(.plain)
@@ -242,6 +232,7 @@ struct PatchProjectsView: View {
                     selectedPackagePath = item.packageURL.path
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    // ELEGANT REDESIGNED DELETE BUTTON
                     Button(role: .destructive) {
                         store.delete(item)
                         if selectedPackagePath == item.packageURL.path {
@@ -250,13 +241,15 @@ struct PatchProjectsView: View {
                     } label: {
                         Label("Delete", systemImage: "trash.fill")
                     }
+                    .tint(Color.red)
 
+                    // ELEGANT REDESIGNED EXPORT BUTTON
                     Button {
                         exportPackage(url: item.packageURL)
                     } label: {
-                        Label("Export", systemImage: "square.and.arrow.up")
+                        Label("Export", systemImage: "square.and.arrow.up.fill")
                     }
-                    .tint(Color(red: 56/255, green: 189/255, blue: 248/255))
+                    .tint(Color(white: 0.25))
                 }
                 .listRowSeparator(.hidden)
                 .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
@@ -275,7 +268,7 @@ struct PatchProjectsView: View {
     }
 }
 
-// SLEEK COMPACT PACKAGE ROW CARD
+// SLEEK BLACK & WHITE PACKAGE ROW CARD
 struct PackageRowCard: View {
     let item: PatchLibraryItem
     let isSelected: Bool
@@ -284,15 +277,11 @@ struct PackageRowCard: View {
         HStack(spacing: 12) {
             ZStack {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(
-                        isSelected
-                            ? Color(red: 56/255, green: 189/255, blue: 248/255)
-                            : Color(red: 56/255, green: 189/255, blue: 248/255).opacity(0.18)
-                    )
+                    .fill(isSelected ? Color.white : Color(white: 0.18))
                     .frame(width: 32, height: 32)
                 Image(systemName: "shield.fill")
                     .font(.system(size: 15))
-                    .foregroundStyle(isSelected ? .black : Color(red: 56/255, green: 189/255, blue: 248/255))
+                    .foregroundStyle(isSelected ? .black : .white)
             }
 
             VStack(alignment: .leading, spacing: 2) {
@@ -302,7 +291,7 @@ struct PackageRowCard: View {
                     .foregroundStyle(.white)
                 Text("Protected V4RTEXX Package • Swipe left")
                     .font(.caption2.weight(.medium))
-                    .foregroundStyle(Color(red: 148/255, green: 163/255, blue: 184/255))
+                    .foregroundStyle(Color(white: 0.6))
             }
 
             Spacer()
@@ -313,29 +302,20 @@ struct PackageRowCard: View {
                     Text("Selected")
                 }
                 .font(.caption2.weight(.bold))
-                .foregroundStyle(Color(red: 56/255, green: 189/255, blue: 248/255))
+                .foregroundStyle(.white)
             } else {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(Color(red: 100/255, green: 116/255, blue: 139/255))
+                    .foregroundStyle(Color(white: 0.5))
             }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(
-            isSelected
-                ? Color(red: 25/255, green: 45/255, blue: 70/255)
-                : Color(red: 18/255, green: 25/255, blue: 38/255)
-        )
+        .background(isSelected ? Color(white: 0.15) : Color(white: 0.08))
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(
-                    isSelected
-                        ? Color(red: 56/255, green: 189/255, blue: 248/255)
-                        : Color.white.opacity(0.06),
-                    lineWidth: isSelected ? 1.5 : 1
-                )
+                .stroke(isSelected ? Color.white : Color.white.opacity(0.08), lineWidth: isSelected ? 1.5 : 1)
         )
     }
 }

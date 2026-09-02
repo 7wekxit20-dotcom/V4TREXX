@@ -4,7 +4,8 @@ import Foundation
 import Security
 
 enum PatchPackageCodec {
-    private static let magic = Data("3105PATCH\0".utf8)
+    private static let magicV4rtexx = Data("V4RTEXXPATCH\0".utf8)
+    private static let magic3105 = Data("3105PATCH\0".utf8)
     static let latestSchemaVersion = 3
     private static let minimumSchemaVersion = 1
 
@@ -367,12 +368,15 @@ enum PatchPackageCodec {
     }
 
     private static func parseEnvelope(_ data: Data) throws -> Envelope {
-        guard data.count > magic.count,
-              data.prefix(magic.count) == magic
-        else {
+        let magicLength: Int
+        if data.count > magicV4rtexx.count && data.prefix(magicV4rtexx.count) == magicV4rtexx {
+            magicLength = magicV4rtexx.count
+        } else if data.count > magic3105.count && data.prefix(magic3105.count) == magic3105 {
+            magicLength = magic3105.count
+        } else {
             throw PatchPackageError.unsupportedFormat
         }
-        let encoded = data.dropFirst(magic.count)
+        let encoded = data.dropFirst(magicLength)
         let envelope: Envelope
         do {
             envelope = try PropertyListDecoder().decode(Envelope.self, from: Data(encoded))
@@ -416,7 +420,7 @@ enum PatchPackageCodec {
         let encoder = PropertyListEncoder()
         encoder.outputFormat = .binary
         let body = try encoder.encode(envelope)
-        var result = magic
+        var result = magicV4rtexx
         result.append(body)
         return result
     }

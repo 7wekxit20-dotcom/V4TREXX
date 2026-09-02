@@ -15,7 +15,7 @@ struct CleanerView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(red: 10/255, green: 14/255, blue: 23/255)
+                Color.black
                     .ignoresSafeArea()
 
                 ScrollView {

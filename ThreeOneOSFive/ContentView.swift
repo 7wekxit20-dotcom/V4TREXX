@@ -12,7 +12,7 @@ struct ContentView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            Color(red: 10/255, green: 14/255, blue: 23/255)
+            Color.black
                 .ignoresSafeArea()
 
             // Main Tab Content with Smooth Animation Transitions
@@ -46,12 +46,12 @@ struct ContentView: View {
             }
             .animation(.easeInOut(duration: 0.22), value: tabNavigation.selectedTab)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(.bottom, 64) // Leave space for custom bottom bar
+            .padding(.bottom, 64)
 
             // Custom V4RTEXX Bottom Navigation Bar
             customTabBar
         }
-        .tint(Color(red: 56/255, green: 189/255, blue: 248/255))
+        .tint(Color.white)
         .sheet(isPresented: $showSettings) { SettingsView() }
         .sheet(isPresented: $showLogs) { LogView() }
     }
@@ -67,14 +67,14 @@ struct ContentView: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
         .background(
-            Color(red: 22/255, green: 30/255, blue: 46/255)
+            Color(white: 0.12)
+                .clipShape(Capsule())
                 .overlay(
-                    RoundedRectangle(cornerRadius: 30, style: .continuous)
-                        .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                    Capsule()
+                        .stroke(Color.white.opacity(0.15), lineWidth: 1)
                 )
+                .shadow(color: Color.black.opacity(0.5), radius: 12, x: 0, y: 6)
         )
-        .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
-        .shadow(color: Color.black.opacity(0.4), radius: 16, x: 0, y: 8)
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
     }
@@ -83,27 +83,27 @@ struct ContentView: View {
         let isSelected = tabNavigation.selectedTab == section.rawValue
 
         return Button {
-            withAnimation(.easeInOut(duration: 0.22)) {
-                tabNavigation.select(section.rawValue)
+            withAnimation(.easeInOut(duration: 0.2)) {
+                tabNavigation.selectedTab = section.rawValue
             }
         } label: {
             VStack(spacing: 3) {
-                ZStack {
-                    if isSelected {
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(Color(red: 56/255, green: 189/255, blue: 248/255).opacity(0.2))
-                            .frame(width: 44, height: 32)
-                    }
-                    Image(systemName: systemImage)
-                        .font(.system(size: 16, weight: isSelected ? .bold : .medium))
-                        .foregroundStyle(isSelected ? Color(red: 56/255, green: 189/255, blue: 248/255) : Color(red: 148/255, green: 163/255, blue: 184/255))
-                }
+                Image(systemName: systemImage)
+                    .font(.system(size: 18, weight: isSelected ? .bold : .medium))
+                    .foregroundStyle(isSelected ? Color.white : Color(white: 0.5))
 
                 Text(title)
-                    .font(.caption2.weight(isSelected ? .bold : .regular))
-                    .foregroundStyle(isSelected ? Color(red: 56/255, green: 189/255, blue: 248/255) : Color(red: 148/255, green: 163/255, blue: 184/255))
+                    .font(.system(size: 10, weight: isSelected ? .bold : .medium))
+                    .foregroundStyle(isSelected ? Color.white : Color(white: 0.5))
             }
             .frame(maxWidth: .infinity)
+            .padding(.vertical, 6)
+            .background(
+                isSelected
+                    ? Color(white: 0.25)
+                    : Color.clear
+            )
+            .clipShape(Capsule())
         }
         .buttonStyle(.plain)
     }
