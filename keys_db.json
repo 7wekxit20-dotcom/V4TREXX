@@ -8,5 +8,12 @@
       "V4RTEXX-DEVICE-BOUND-01"
     ],
     "manual_used": true
+  },
+  "BG8B8K5BHDVLLB88OWJ": {
+    "duration": "1 Day",
+    "scope": "1 Device (Bound)",
+    "status": "Active",
+    "owner": "8364896923",
+    "bound_devices": []
   }
 }
