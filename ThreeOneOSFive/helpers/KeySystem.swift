@@ -42,10 +42,10 @@ struct KeySystem {
         return uuid
     }
 
-    static func verifyKeyAuth(key: String, completion: @escaping (Result<Void, String>) -> Void) {
+    static func verifyKeyAuth(key: String, completion: @escaping (Bool, String?) -> Void) {
         let trimmedKey = key.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedKey.isEmpty else {
-            completion(.failure("INVALID KEY"))
+            completion(false, "INVALID KEY")
             return
         }
 
@@ -60,17 +60,17 @@ struct KeySystem {
         ]
 
         guard let initURL = initComponents.url else {
-            completion(.failure("INVALID KEY"))
+            completion(false, "INVALID KEY")
             return
         }
 
-        let initTask = URLSession.shared.dataTask(with: initURL) { initData, _, initError in
+        let initTask = URLSession.shared.dataTask(with: initURL) { initData, _, _ in
             guard let initData = initData,
                   let initResponse = try? JSONDecoder().decode(KeyAuthInitResponse.self, from: initData),
                   initResponse.success,
                   let sessionID = initResponse.sessionid else {
                 DispatchQueue.main.async {
-                    completion(.failure("INVALID KEY"))
+                    completion(false, "INVALID KEY")
                 }
                 return
             }
@@ -88,16 +88,16 @@ struct KeySystem {
 
             guard let licenseURL = licenseComponents.url else {
                 DispatchQueue.main.async {
-                    completion(.failure("INVALID KEY"))
+                    completion(false, "INVALID KEY")
                 }
                 return
             }
 
-            let licenseTask = URLSession.shared.dataTask(with: licenseURL) { licData, _, licError in
+            let licenseTask = URLSession.shared.dataTask(with: licenseURL) { licData, _, _ in
                 DispatchQueue.main.async {
                     guard let licData = licData,
                           let licResponse = try? JSONDecoder().decode(KeyAuthLicenseResponse.self, from: licData) else {
-                        completion(.failure("INVALID KEY"))
+                        completion(false, "INVALID KEY")
                         return
                     }
 
@@ -105,10 +105,10 @@ struct KeySystem {
                         // Key is valid on KeyAuth server! Save state.
                         UserDefaults.standard.set(true, forKey: storageKey)
                         UserDefaults.standard.set(trimmedKey, forKey: savedKeyStorageKey)
-                        completion(.success(()))
+                        completion(true, nil)
                     } else {
                         let errMsg = licResponse.message?.uppercased() ?? "INVALID KEY"
-                        completion(.failure(errMsg.contains("KEY") ? errMsg : "INVALID KEY"))
+                        completion(false, errMsg.contains("KEY") ? errMsg : "INVALID KEY")
                     }
                 }
             }

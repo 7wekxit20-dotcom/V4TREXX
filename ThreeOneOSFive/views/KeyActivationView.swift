@@ -162,13 +162,12 @@ struct KeyActivationView: View {
         isProcessing = true
         errorMessage = nil
 
-        KeySystem.verifyKeyAuth(key: trimmed) { result in
+        KeySystem.verifyKeyAuth(key: trimmed) { success, errMsg in
             isProcessing = false
-            switch result {
-            case .success:
+            if success {
                 onActivated()
-            case .failure(let err):
-                errorMessage = err
+            } else {
+                errorMessage = errMsg ?? "INVALID KEY"
             }
         }
     }
