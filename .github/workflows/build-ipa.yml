@@ -21,20 +21,20 @@ jobs:
       - name: Build App with xcodebuild
         run: |
           xcodebuild -project ThreeOneOSFive.xcodeproj \
-                     -target "V4RTEXX MANAGER" \
+                     -scheme ThreeOneOSFive \
                      -configuration Release \
-                     -sdk iphonesimulator \
+                     -sdk iphoneos \
                      -derivedDataPath build \
                      CODE_SIGNING_ALLOWED=NO \
-                     CODE_SIGNING_REQUIRED=NO \
                      CODE_SIGN_IDENTITY="" \
+                     CODE_SIGNING_REQUIRED=NO \
                      COMPILER_INDEX_STORE_ENABLE=NO
 
       - name: Package IPA
         run: |
           mkdir -p Payload
-          APP_PATH=$(find build/Build/Products -name "*.app" | head -n 1)
-          echo "Found app bundle at: $APP_PATH"
+          APP_PATH=$(find build/Build/Products/Release-iphoneos -name "*.app" | head -n 1)
+          echo "Found built app at: $APP_PATH"
           cp -r "$APP_PATH" Payload/
           zip -r V4RTEXX_MANAGER.ipa Payload
 
