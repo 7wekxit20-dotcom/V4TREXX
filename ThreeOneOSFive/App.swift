@@ -16,6 +16,7 @@ struct ThreeOneOSFiveApp: App {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init() {
+        AntiCrackService.enforceProtection()
         OnboardingStore.markCompleted()
         setupLogCapture()
         log("app: V4RTEXX MANAGER launching — iOS \(AppInfo.osVersion) (\(AppInfo.osBuild)) \(AppInfo.machineName)")

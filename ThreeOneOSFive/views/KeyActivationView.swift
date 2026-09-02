@@ -32,12 +32,12 @@ struct KeyActivationView: View {
                 // Key Input Card (Black & White Theme, Enlarged Input, Icon-Only Paste)
                 VStack(spacing: 18) {
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("ENTER YOUR KEYAUTH LICENSE KEY")
+                        Text("ENTER YOUR LICENSE KEY")
                             .font(.caption2.weight(.bold))
                             .foregroundStyle(Color(white: 0.6))
 
                         HStack(spacing: 12) {
-                            TextField("KeyAuth License Key", text: $keyText)
+                            TextField("License Key", text: $keyText)
                                 .font(.system(size: 17, weight: .bold, design: .monospaced))
                                 .autocorrectionDisabled()
                                 .textInputAutocapitalization(.characters)
@@ -104,7 +104,7 @@ struct KeyActivationView: View {
                                     .tint(.black)
                             } else {
                                 Image(systemName: "checkmark.shield.fill")
-                                Text("Activate V4RTEXX")
+                                Text("Activate")
                                     .fontWeight(.bold)
                             }
                         }
@@ -144,7 +144,7 @@ struct KeyActivationView: View {
 
                 Spacer()
 
-                Text("V4RTEXX MANAGER • KeyAuth Server Verified")
+                Text("V4RTEXX MANAGER • Verified License")
                     .font(.caption2)
                     .foregroundStyle(Color(white: 0.5))
                     .padding(.bottom, 16)

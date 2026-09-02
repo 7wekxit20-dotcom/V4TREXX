@@ -87,15 +87,7 @@ struct SettingsView: View {
             .background(Color.black.ignoresSafeArea())
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(language.text("common.done")) {
-                        dismiss()
-                    }
-                    .font(.headline.weight(.bold))
-                    .foregroundStyle(.white)
-                }
-            }
+            .toolbar {}
         }
     }
 

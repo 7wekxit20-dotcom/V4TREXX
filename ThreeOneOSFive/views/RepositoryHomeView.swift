@@ -161,17 +161,7 @@ struct RepositoryHomeView: View {
             }
             .navigationTitle("Home")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        onOpenSettings()
-                    } label: {
-                        Image(systemName: "gearshape.fill")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundStyle(.white)
-                    }
-                }
-            }
+            .toolbar {}
         }
     }
 }

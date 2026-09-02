@@ -47,7 +47,6 @@ struct KeySystem {
     static func verifyKeyAuth(key: String, completion: @escaping (Bool, String?) -> Void) {
         let trimmedKey = key.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedKey.isEmpty else {
-            resetActivation()
             completion(false, "INVALID KEY")
             return
         }
@@ -63,7 +62,6 @@ struct KeySystem {
         ]
 
         guard let initURL = initComponents.url else {
-            resetActivation()
             completion(false, "INVALID KEY")
             return
         }
@@ -74,8 +72,12 @@ struct KeySystem {
                   initResponse.success,
                   let sessionID = initResponse.sessionid else {
                 DispatchQueue.main.async {
-                    resetActivation()
-                    completion(false, "INVALID KEY")
+                    // If network fails offline, allow existing saved key session
+                    if isActivated && savedKey == trimmedKey {
+                        completion(true, nil)
+                    } else {
+                        completion(false, "INVALID KEY")
+                    }
                 }
                 return
             }
@@ -93,8 +95,11 @@ struct KeySystem {
 
             guard let licenseURL = licenseComponents.url else {
                 DispatchQueue.main.async {
-                    resetActivation()
-                    completion(false, "INVALID KEY")
+                    if isActivated && savedKey == trimmedKey {
+                        completion(true, nil)
+                    } else {
+                        completion(false, "INVALID KEY")
+                    }
                 }
                 return
             }
@@ -103,8 +108,11 @@ struct KeySystem {
                 DispatchQueue.main.async {
                     guard let licData = licData,
                           let licResponse = try? JSONDecoder().decode(KeyAuthLicenseResponse.self, from: licData) else {
-                        resetActivation()
-                        completion(false, "INVALID KEY")
+                        if isActivated && savedKey == trimmedKey {
+                            completion(true, nil)
+                        } else {
+                            completion(false, "INVALID KEY")
+                        }
                         return
                     }
 
@@ -114,7 +122,7 @@ struct KeySystem {
                         UserDefaults.standard.set(trimmedKey, forKey: savedKeyStorageKey)
                         completion(true, nil)
                     } else {
-                        // REJECT! Reset activation state in UserDefaults
+                        // Key explicitly expired or invalid on KeyAuth server! Auto Log Out.
                         resetActivation()
                         let errMsg = licResponse.message?.uppercased() ?? "INVALID KEY"
                         completion(false, errMsg.contains("KEY") ? errMsg : "INVALID KEY")
@@ -128,14 +136,10 @@ struct KeySystem {
 
     static func reverifySavedLicense(completion: @escaping (Bool) -> Void) {
         guard isActivated, let saved = savedKey, !saved.isEmpty else {
-            resetActivation()
             completion(false)
             return
         }
         verifyKeyAuth(key: saved) { success, _ in
-            if !success {
-                resetActivation()
-            }
             completion(success)
         }
     }

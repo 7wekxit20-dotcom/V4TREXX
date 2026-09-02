@@ -280,6 +280,12 @@ struct InjectView: View {
     }
 
     private func performInjection() {
+        guard KeySystem.isActivated, let savedKey = KeySystem.savedKey else {
+            alertMessage = "License verification failed! Please activate your key again."
+            showSuccessAlert = true
+            return
+        }
+
         guard !selectedPackagePath.isEmpty,
               let targetItem = store.items.first(where: { $0.packageURL.path == selectedPackagePath }) else {
             alertMessage = "No package selected! Please select a .v4rtexx package in the Library tab first."
@@ -288,20 +294,31 @@ struct InjectView: View {
         }
 
         isProcessing = true
-        DispatchQueue.global(qos: .userInitiated).async {
-            let message = "Successfully injected \(selectedPackageName) into \(gameTitle) container!"
-            if let proj = targetItem.project {
-                do {
-                    _ = try DevicePatchService.apply(project: proj)
-                } catch {
-                    log("inject error: \(error)")
+        KeySystem.verifyKeyAuth(key: savedKey) { success, errMsg in
+            guard success else {
+                DispatchQueue.main.async {
+                    self.isProcessing = false
+                    self.alertMessage = "Injection blocked! License key is invalid or expired."
+                    self.showSuccessAlert = true
                 }
+                return
             }
-            DispatchQueue.main.async {
-                isProcessing = false
-                isInjected = true
-                alertMessage = message
-                showSuccessAlert = true
+
+            DispatchQueue.global(qos: .userInitiated).async {
+                let message = "Successfully injected \(selectedPackageName) into \(gameTitle) container!"
+                if let proj = targetItem.project {
+                    do {
+                        _ = try DevicePatchService.apply(project: proj)
+                    } catch {
+                        log("inject error: \(error)")
+                    }
+                }
+                DispatchQueue.main.async {
+                    isProcessing = false
+                    isInjected = true
+                    alertMessage = message
+                    showSuccessAlert = true
+                }
             }
         }
     }
