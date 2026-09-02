@@ -22,7 +22,6 @@ jobs:
         run: xcodebuild -project ThreeOneOSFive.xcodeproj -list 2>&1 || true
 
       - name: Build App with xcodebuild
-        id: build
         run: |
           set -o pipefail
           xcodebuild -project ThreeOneOSFive.xcodeproj \
@@ -31,9 +30,11 @@ jobs:
                      -sdk iphoneos \
                      -derivedDataPath build \
                      CODE_SIGN_STYLE=Manual \
-                     CODE_SIGN_IDENTITY="-" \
-                     CODE_SIGNING_ALLOWED=YES \
+                     CODE_SIGN_IDENTITY="" \
                      CODE_SIGNING_REQUIRED=NO \
+                     CODE_SIGNING_ALLOWED=NO \
+                     AD_HOC_CODE_SIGNING_ALLOWED=YES \
+                     DEVELOPMENT_TEAM="" \
                      HEADER_SEARCH_PATHS="$(pwd)/ThreeOneOSFive $(pwd)/ThreeOneOSFive/kexploit $(pwd)/ThreeOneOSFive/exploit $(pwd)/ThreeOneOSFive/helpers" \
                      COMPILER_INDEX_STORE_ENABLE=NO 2>&1 | tee xcodebuild.log
           BUILD_EXIT=${PIPESTATUS[0]}
@@ -41,7 +42,7 @@ jobs:
           if [ $BUILD_EXIT -ne 0 ]; then
             echo ""
             echo "======= BUILD ERRORS ======="
-            grep -E "^.*(error:|warning: implicit).*$" xcodebuild.log | head -100 || true
+            grep -E "(error:|warning: implicit)" xcodebuild.log | head -80 || true
             echo "============================"
             exit $BUILD_EXIT
           fi
