@@ -15,7 +15,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build App with xcodebuild (Simulator target)
+      - name: Select Xcode Version
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
+
+      - name: Build App with xcodebuild
         run: |
           xcodebuild -project ThreeOneOSFive.xcodeproj \
                      -scheme ThreeOneOSFive \
@@ -23,13 +26,14 @@ jobs:
                      -sdk iphonesimulator \
                      -derivedDataPath build \
                      CODE_SIGNING_ALLOWED=NO \
-                     CODE_SIGNING_REQUIRED=NO
+                     CODE_SIGNING_REQUIRED=NO \
+                     COMPILER_INDEX_STORE_ENABLE=NO
 
       - name: Package IPA
         run: |
           mkdir -p Payload
-          APP_PATH=$(find build/Build/Products/Release-iphonesimulator -name "*.app" -maxdepth 1 | head -n 1)
-          echo "Found app bundle: $APP_PATH"
+          APP_PATH=$(find build/Build/Products -name "*.app" | head -n 1)
+          echo "Found app bundle at: $APP_PATH"
           cp -r "$APP_PATH" Payload/
           zip -r V4RTEXX_MANAGER.ipa Payload
 

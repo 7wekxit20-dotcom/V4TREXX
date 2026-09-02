@@ -330,8 +330,8 @@
 			);
 			dependencies = (
 			);
-			name = 3105;
-			productName = 3105;
+			name = "V4RTEXX MANAGER";
+			productName = "V4RTEXX MANAGER";
 			productReference = 3105A010;
 			productType = "com.apple.product-type.application";
 		};
