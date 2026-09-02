@@ -18,9 +18,12 @@ jobs:
       - name: Select Xcode Version
         run: sudo xcode-select -s /Applications/Xcode_15.4.app/Contents/Developer
 
+      - name: List available schemes
+        run: |
+          xcodebuild -project ThreeOneOSFive.xcodeproj -list 2>&1 || true
+
       - name: Build App with xcodebuild
         run: |
-          set -o pipefail
           xcodebuild -project ThreeOneOSFive.xcodeproj \
                      -scheme ThreeOneOSFive \
                      -configuration Release \
@@ -30,14 +33,16 @@ jobs:
                      CODE_SIGN_IDENTITY="-" \
                      CODE_SIGNING_ALLOWED=YES \
                      CODE_SIGNING_REQUIRED=NO \
-                     HEADER_SEARCH_PATHS='$(inherited) $(SRCROOT)/ThreeOneOSFive' \
+                     HEADER_SEARCH_PATHS="$(pwd)/ThreeOneOSFive" \
                      COMPILER_INDEX_STORE_ENABLE=NO 2>&1 | tee xcodebuild.log
+          exit ${PIPESTATUS[0]}
 
-      - name: Output Build Logs on Failure
-        if: failure()
-        run: |
-          echo "=== XCODEBUILD COMPLETE BUILD LOG ==="
-          cat xcodebuild.log
+      - name: Upload build log (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: xcodebuild.log
 
       - name: Package IPA
         run: |
