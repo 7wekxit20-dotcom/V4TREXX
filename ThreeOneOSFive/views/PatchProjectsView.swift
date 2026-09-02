@@ -63,7 +63,7 @@ struct PatchProjectsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .fileImporter(
                 isPresented: $showImporter,
-                allowedContentTypes: PatchFileUTTypes.allowedTypes,
+                allowedContentTypes: [.item, .data, .content],
                 allowsMultipleSelection: false
             ) { result in
                 if case .success(let urls) = result, let url = urls.first {

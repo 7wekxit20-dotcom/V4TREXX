@@ -103,7 +103,6 @@ final class PatchProjectStore: ObservableObject {
     }
 
     func importPackage(at sourceURL: URL) {
-        guard !isBusy else { return }
         isBusy = true
         let hasAccess = sourceURL.startAccessingSecurityScopedResource()
         let fileData = try? Data(contentsOf: sourceURL)
@@ -144,7 +143,6 @@ final class PatchProjectStore: ObservableObject {
         password: String? = nil,
         origin: PatchPackageOrigin? = nil
     ) -> Bool {
-        guard !isBusy else { return false }
         isBusy = true
         Task.detached(priority: .userInitiated) { [weak self] in
             do {
