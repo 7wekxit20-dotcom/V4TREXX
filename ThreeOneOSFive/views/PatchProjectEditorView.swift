@@ -203,6 +203,12 @@ struct PatchProjectEditorView: View {
         .padding(.vertical, 3)
     }
 
+    private func openRuleEditor(rule: PatchRule?) {
+        let activeBundle = bundleID.trimmingCharacters(in: .whitespacesAndNewlines)
+        let fallbackBundle = activeBundle.isEmpty ? "com.dts.freefireth" : activeBundle
+        ruleEditor = PatchRuleEditorContext(rule: rule, defaultBundleID: fallbackBundle)
+    }
+
     private func save() {
         let projectName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let projectAuthor = author.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -210,7 +216,10 @@ struct PatchProjectEditorView: View {
             validationMessageKey = "patch.error.invalid_project"
             return
         }
-        guard projectAuthor.utf8.count <= PatchPackageLimits.maximumAuthorBytes,
+        guard projectAuthor.utf8.count <= PatchPackageLimits.maximumAuthorBytes else {
+            validationMessageKey = "patch.error.invalid_author"
+            return
+        }
         name = projectName
         author = projectAuthor
         if existingProject == nil, isPrivate, password.isEmpty {
