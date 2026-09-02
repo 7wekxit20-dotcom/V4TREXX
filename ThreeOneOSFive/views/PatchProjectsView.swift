@@ -64,7 +64,13 @@ struct PatchProjectsView: View {
                 }
             }
             .sheet(isPresented: $showEditor) {
-                PatchProjectEditorView(mode: .create)
+                PatchProjectEditorView(
+                    existingProject: nil,
+                    passwordIsProtected: false,
+                    onSave: { project, password in
+                        _ = store.createProject(project, password: password)
+                    }
+                )
             }
             .alert("V4RTEXX Admin Mode", isPresented: $showAdminAlert) {
                 SecureField("Enter Admin Key", text: $adminKeyInput)
