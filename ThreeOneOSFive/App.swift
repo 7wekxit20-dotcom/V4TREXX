@@ -107,6 +107,16 @@ class AppState: ObservableObject {
 
     private var autoRunAttempted = false
 
+    var isSupported: Bool {
+        let osTuple = AppInfo.versionTuple
+        return ExploitSupportPolicy.isSupported(
+            major: osTuple.major,
+            minor: osTuple.minor,
+            patch: osTuple.patch,
+            build: AppInfo.osBuild
+        )
+    }
+
     var kernelExploitApplicable: Bool {
         KernelExploit.isApplicable(
             major: AppInfo.versionTuple.major,
@@ -117,16 +127,8 @@ class AppState: ObservableObject {
     }
 
     func detectSupport() {
-        let osTuple = AppInfo.versionTuple
-        let result = SupportPolicy.evaluate(
-            major: osTuple.major,
-            minor: osTuple.minor,
-            patch: osTuple.patch,
-            build: AppInfo.osBuild
-        )
-
-        if case .unsupported(let reason) = result {
-            unsupportedMessage = reason
+        if !isSupported {
+            unsupportedMessage = "Unsupported iOS Version"
         } else {
             unsupportedMessage = nil
         }
