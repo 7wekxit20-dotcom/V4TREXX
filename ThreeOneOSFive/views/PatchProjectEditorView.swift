@@ -64,7 +64,7 @@ struct PatchProjectEditorView: View {
                                     .foregroundStyle(.secondary)
                             }
                         } else {
-                            TextField("com.example.app", text: $bundleID)
+                            TextField("com.dts.freefireth", text: $bundleID)
                                 .textInputAutocapitalization(.never)
                                 .autocorrectionDisabled()
                                 .font(.body.monospaced())

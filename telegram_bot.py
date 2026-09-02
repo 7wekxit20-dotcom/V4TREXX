@@ -37,7 +37,7 @@ def generate_key_string():
 def build_main_menu():
     markup = InlineKeyboardMarkup(row_width=1)
     btn_key = InlineKeyboardButton("🔑 Generate Key", callback_data="start_gen")
-    btn_status = InlineKeyboardButton("ℹ️ Manage & Revoke Keys", callback_data="manage_keys")
+    btn_status = InlineKeyboardButton("ℹ️ Key Status & Bound Devices", callback_data="manage_keys")
     markup.add(btn_key, btn_status)
     return markup
 
@@ -45,7 +45,7 @@ def build_main_menu():
 def send_welcome(message):
     welcome_text = (
         "⚡ *V4RTEXX MANAGER License Key Generator* ⚡\n\n"
-        "Generate & manage customized license keys for V4RTEXX MANAGER iOS App."
+        "Generate & manage customized license keys with Device UUID binding."
     )
     bot.send_message(
         message.chat.id,
@@ -64,7 +64,7 @@ def callback_listener(call):
         user_state.pop(chat_id, None)
         welcome_text = (
             "⚡ *V4RTEXX MANAGER License Key Generator* ⚡\n\n"
-            "Generate & manage customized license keys for V4RTEXX MANAGER iOS App."
+            "Generate & manage customized license keys with Device UUID binding."
         )
         bot.edit_message_text(
             chat_id=chat_id,
@@ -75,7 +75,7 @@ def callback_listener(call):
         )
 
     elif data == "start_gen":
-        # Step 1: Duration Selection (Presets or Manual)
+        # Step 1: Duration Selection
         user_state[chat_id] = {}
         markup = InlineKeyboardMarkup(row_width=2)
         btn1 = InlineKeyboardButton("⏳ 1 Day", callback_data="dur_1d")
@@ -97,7 +97,7 @@ def callback_listener(call):
         )
 
     elif data == "dur_custom":
-        msg = bot.send_message(chat_id, "✏️ *Please reply with your custom duration* (e.g., `15 Days`, `60 Days`, `6 Months`):", parse_mode="Markdown")
+        msg = bot.send_message(chat_id, "✏️ *Please reply with your custom duration* (e.g., `15 Days`, `60 Days`):", parse_mode="Markdown")
         bot.register_next_step_handler(msg, process_custom_duration)
 
     elif data.startswith("dur_"):
@@ -128,17 +128,34 @@ def callback_listener(call):
     elif data == "manage_keys":
         owner_keys = {k: v for k, v in keys_db.items() if v.get("owner") == str(chat_id) and v.get("status") == "Active"}
         if not owner_keys:
-            text = "ℹ️ *Key Status & Revocation*\n\nYou currently have no active generated keys."
+            text = "ℹ️ *Key Status & Device UUID Binding*\n\nYou currently have no active generated keys."
             markup = InlineKeyboardMarkup()
             markup.add(InlineKeyboardButton("🔙 Main Menu", callback_data="main_menu"))
             bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=text, parse_mode="Markdown", reply_markup=markup)
             return
 
-        text = f"ℹ️ *Active Keys ({len(owner_keys)})*\nSelect a key to revoke or remove:"
+        text = f"ℹ️ *Active Keys & Device UUID Status ({len(owner_keys)})*\n\n"
         markup = InlineKeyboardMarkup(row_width=1)
         for key_str, info in list(owner_keys.items())[:10]:
-            btn_label = f"❌ Revoke: {key_str} ({info.get('duration')})"
+            bound_devices = info.get("bound_devices", [])
+            device_count = len(bound_devices)
+            scope = info.get("scope", "1 Device")
+            dur = info.get("duration", "Lifetime")
+
+            text += (
+                f"🔑 *Key:* `{key_str}`\n"
+                f"⏱️ *Duration:* {dur}\n"
+                f"📱 *Scope:* {scope}\n"
+                f"🔗 *Bound Devices:* {device_count} UUID(s) bound\n"
+            )
+            if bound_devices:
+                for idx, uuid in enumerate(bound_devices, 1):
+                    text += f"   • Device #{idx}: `{uuid}`\n"
+            text += "\n"
+
+            btn_label = f"❌ Revoke: {key_str}"
             markup.add(InlineKeyboardButton(btn_label, callback_data=f"revoke_{key_str}"))
+
         markup.add(InlineKeyboardButton("🔙 Main Menu", callback_data="main_menu"))
         bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=text, parse_mode="Markdown", reply_markup=markup)
 
@@ -189,7 +206,8 @@ def process_custom_device(message):
         "duration": duration,
         "scope": custom_scope,
         "status": "Active",
-        "owner": str(chat_id)
+        "owner": str(chat_id),
+        "bound_devices": []
     }
     save_keys(keys_db)
 
@@ -197,7 +215,8 @@ def process_custom_device(message):
         "✅ *V4RTEXX LICENSE KEY GENERATED*\n\n"
         f"`{key_str}`\n\n"
         f"⏱️ *Duration:* {duration}\n"
-        f"🌐 *Scope:* {custom_scope}\n\n"
+        f"🌐 *Scope:* {custom_scope}\n"
+        f"🔗 *Bound Devices:* 0 UUID(s) bound\n\n"
         "📋 _Tap key above to copy, then paste it in V4RTEXX MANAGER app._"
     )
     markup = InlineKeyboardMarkup(row_width=1)
@@ -228,7 +247,8 @@ def finalize_key_generation(chat_id, msg_id, duration, scope):
         "duration": duration,
         "scope": scope,
         "status": "Active",
-        "owner": str(chat_id)
+        "owner": str(chat_id),
+        "bound_devices": []
     }
     save_keys(keys_db)
 
@@ -236,7 +256,8 @@ def finalize_key_generation(chat_id, msg_id, duration, scope):
         "✅ *V4RTEXX LICENSE KEY GENERATED*\n\n"
         f"`{key_str}`\n\n"
         f"⏱️ *Duration:* {duration}\n"
-        f"🌐 *Scope:* {scope}\n\n"
+        f"🌐 *Scope:* {scope}\n"
+        f"🔗 *Bound Devices:* 0 UUID(s) bound\n\n"
         "📋 _Tap key above to copy, then paste it in V4RTEXX MANAGER app._"
     )
     markup = InlineKeyboardMarkup(row_width=1)

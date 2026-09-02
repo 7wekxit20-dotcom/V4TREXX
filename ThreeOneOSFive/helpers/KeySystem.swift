@@ -1,8 +1,10 @@
 import Foundation
+import UIKit
 
 struct KeySystem {
     static let storageKey = "v4rtexx.key_activated"
     static let savedKeyStorageKey = "v4rtexx.saved_key"
+    static let deviceUUIDStorageKey = "v4rtexx.device_uuid"
 
     static var isActivated: Bool {
         UserDefaults.standard.bool(forKey: storageKey)
@@ -10,6 +12,15 @@ struct KeySystem {
 
     static var savedKey: String? {
         UserDefaults.standard.string(forKey: savedKeyStorageKey)
+    }
+
+    static var deviceUUID: String {
+        if let stored = UserDefaults.standard.string(forKey: deviceUUIDStorageKey) {
+            return stored
+        }
+        let uuid = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
+        UserDefaults.standard.set(uuid, forKey: deviceUUIDStorageKey)
+        return uuid
     }
 
     static func validateKey(_ key: String) -> Bool {
@@ -23,8 +34,10 @@ struct KeySystem {
     static func activate(with key: String) -> Bool {
         let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
         guard validateKey(trimmed) else { return false }
+        
         UserDefaults.standard.set(true, forKey: storageKey)
         UserDefaults.standard.set(trimmed, forKey: savedKeyStorageKey)
+        _ = deviceUUID // Ensure device UUID is cached
         return true
     }
 

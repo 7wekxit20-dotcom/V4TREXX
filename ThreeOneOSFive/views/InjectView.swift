@@ -287,11 +287,17 @@ struct InjectView: View {
     }
 
     private func performInjection() {
+        guard !selectedPackagePath.isEmpty,
+              let targetItem = store.items.first(where: { $0.packageURL.path == selectedPackagePath }) else {
+            alertMessage = "No package selected! Please select a .v4rtexx package in the Library tab first."
+            showSuccessAlert = true
+            return
+        }
+
         isProcessing = true
         DispatchQueue.global(qos: .userInitiated).async {
             let message = "Successfully injected \(selectedPackageName) into \(gameTitle) container!"
-            if let targetItem = store.items.first(where: { $0.packageURL.path == selectedPackagePath }),
-               let proj = targetItem.project {
+            if let proj = targetItem.project {
                 do {
                     _ = try DevicePatchService.apply(project: proj)
                 } catch {

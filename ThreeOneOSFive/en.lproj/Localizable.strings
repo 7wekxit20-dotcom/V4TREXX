@@ -144,12 +144,12 @@
 "patch.private_hidden_title" = "Private Patch";
 "patch.private_hidden_message" = "The author has hidden this patch’s files and target paths. You can apply or restore it without viewing its contents.";
 "patch.target_bundle" = "Target Bundle";
-"patch.workspace_bundle_footer" = "3105 creates this bundle folder in the editable patch workspace. Container UUIDs are never stored.";
+"patch.workspace_bundle_footer" = "V4RTEXX creates this bundle folder in the editable patch workspace. Container UUIDs are never stored.";
 "patch.captured_content" = "Captured Content";
-"patch.workspace_edit_footer" = "After creation, manage the complete bundle tree from the 3105 workspace in Files.";
+"patch.workspace_edit_footer" = "After creation, manage the complete bundle tree from the V4RTEXX workspace in Files.";
 "patch.workspace" = "Workspace";
 "patch.open_workspace" = "Open Patch Files";
-"patch.workspace_detail_footer" = "Edit this bundle tree directly. Apply and Export automatically synchronize it into the encrypted .3105 package.";
+"patch.workspace_detail_footer" = "Edit this bundle tree directly. Apply and Export automatically synchronize it into the encrypted .v4rtexx package.";
 "patch.legacy_footer" = "Legacy v1 patch. It remains fully usable in this version of 3105.";
 "patch.files" = "Files";
 "patch.folders" = "Folders";
