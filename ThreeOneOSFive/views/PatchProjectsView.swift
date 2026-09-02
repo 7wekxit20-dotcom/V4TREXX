@@ -68,7 +68,7 @@ struct PatchProjectsView: View {
                     existingProject: nil,
                     passwordIsProtected: false,
                     onSave: { project, password in
-                        _ = store.createProject(project, password: password)
+                        store.create(project: project, password: password)
                     }
                 )
             }
