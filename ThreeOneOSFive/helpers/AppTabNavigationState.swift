@@ -10,6 +10,27 @@ enum AppSection: Int, CaseIterable, Identifiable {
     var id: Int { rawValue }
 }
 
+enum WallpaperFeatureSupportPolicy {
+    static func isSupported(major: Int) -> Bool {
+        switch major {
+        case 17, 18, 26, 27:
+            return true
+        default:
+            return false
+        }
+    }
+}
+
+struct OneShotPresentationGate: Equatable {
+    private(set) var hasClaimed = false
+
+    mutating func claim() -> Bool {
+        guard !hasClaimed else { return false }
+        hasClaimed = true
+        return true
+    }
+}
+
 struct FeatureVisibility: Equatable {
     static let cleanerStorageKey = "feature.cleaner.enabled"
     static let developerModeStorageKey = "feature.developer_mode.enabled"
