@@ -94,7 +94,7 @@ struct KeyActivationView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
 
-                    // Activate Button
+                    // Login Button
                     Button {
                         activateKey()
                     } label: {
@@ -104,7 +104,7 @@ struct KeyActivationView: View {
                                     .tint(.black)
                             } else {
                                 Image(systemName: "checkmark.shield.fill")
-                                Text("Activate")
+                                Text("Login")
                                     .fontWeight(.bold)
                             }
                         }
@@ -155,7 +155,7 @@ struct KeyActivationView: View {
     private func activateKey() {
         let trimmed = keyText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
-            errorMessage = "INVALID KEY"
+            errorMessage = "KEY INVALID"
             return
         }
 
@@ -167,7 +167,7 @@ struct KeyActivationView: View {
             if success {
                 onActivated()
             } else {
-                errorMessage = errMsg ?? "INVALID KEY"
+                errorMessage = errMsg ?? "KEY INVALID"
             }
         }
     }

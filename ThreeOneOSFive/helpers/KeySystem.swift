@@ -49,12 +49,15 @@ struct KeySystem {
         // Add nocache timestamp query parameter to bypass CDN/caching
         let timestamp = Int(Date().timeIntervalSince1970)
         guard let url = URL(string: "\(GitHubAuthAppConfig.rawKeysURL)?nocache=\(timestamp)") else {
-            completion(false, "INVALID KEY")
+            completion(false, "KEY INVALID")
             return
         }
 
         var request = URLRequest(url: url)
         request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+        request.setValue("no-cache, no-store, must-revalidate", forHTTPHeaderField: "Cache-Control")
+        request.setValue("no-cache", forHTTPHeaderField: "Pragma")
+        request.setValue("0", forHTTPHeaderField: "Expires")
         request.timeoutInterval = 10.0
 
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
@@ -82,7 +85,7 @@ struct KeySystem {
                     if isActivated, let saved = savedKey, saved.uppercased() == trimmedKey {
                         completion(true, nil)
                     } else {
-                        completion(false, "INVALID KEY")
+                        completion(false, "KEY INVALID")
                     }
                 }
                 return
@@ -93,7 +96,7 @@ struct KeySystem {
                 guard let record = records[trimmedKey] else {
                     // Key not found in GitHub keys.json
                     resetActivation()
-                    completion(false, "INVALID KEY")
+                    completion(false, "KEY INVALID")
                     return
                 }
 
