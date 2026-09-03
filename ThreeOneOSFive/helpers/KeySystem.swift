@@ -1,10 +1,7 @@
+import CommonCrypto
+import CryptoKit
 import Foundation
 import UIKit
-
-struct GitHubAuthAppConfig {
-    static let rawKeysURL = "https://raw.githubusercontent.com/7wekxit20-dotcom/V4TREXX/main/keys.json"
-    static let fallbackKeysURL = "https://raw.githubusercontent.com/7wekxit20-dotcom/V4TREXX/main/keys_db.json"
-}
 
 struct LicenseKeyRecord {
     let key: String
@@ -12,6 +9,82 @@ struct LicenseKeyRecord {
     let expiresAt: Date?
     let duration: String?
     let note: String?
+}
+
+private struct EncryptedEnvelope: Decodable {
+    let v4rtexx_encrypted: Bool?
+    let version: String?
+    let algorithm: String?
+    let iv: String?
+    let payload: String?
+}
+
+struct AntiCrackShield {
+    // 0x5A XOR-masked Raw GitHub URL: prevents `strings` binary analysis
+    private static let maskedURLBytes: [UInt8] = [
+        50, 46, 46, 42, 41, 96, 117, 117, 40, 59, 45, 116, 61, 51, 46, 50, 47, 56, 47, 41, 63, 40, 57, 53, 52, 46, 63, 52, 46, 116, 57, 53, 55, 117, 109, 45, 63, 49, 34, 51, 46, 104, 106, 119, 62, 53, 46, 57, 53, 55, 117, 12, 110, 14, 8, 31, 2, 2, 117, 55, 59, 51, 52, 117, 49, 63, 35, 41, 116, 48, 41, 53, 52
+    ]
+
+    // 0x5A XOR-masked AES-256 Secret: prevents extracting master key
+    private static let maskedSecretBytes: [UInt8] = [
+        12, 110, 8, 14, 31, 2, 2, 119, 27, 15, 14, 18, 119, 9, 18, 19, 31, 22, 30, 119, 104, 106, 104, 108, 119, 2, 99, 99, 119, 10, 8, 21, 14
+    ]
+
+    private static let xorKey: UInt8 = 0x5A
+
+    static func getEndpointURL(nocacheTimestamp: Int) -> URL? {
+        let unmasked = maskedURLBytes.map { $0 ^ xorKey }
+        guard let base = String(bytes: unmasked, encoding: .utf8) else { return nil }
+        return URL(string: "\(base)?nocache=\(nocacheTimestamp)")
+    }
+
+    static func decryptPayloadIfNeeded(data: Data) -> Data? {
+        var cleanData = data
+        if cleanData.count >= 3 && cleanData[0] == 0xEF && cleanData[1] == 0xBB && cleanData[2] == 0xBF {
+            cleanData = cleanData.subdata(in: 3..<cleanData.count)
+        }
+
+        // Check if data is an AES-256-GCM encrypted envelope
+        guard let envelope = try? JSONDecoder().decode(EncryptedEnvelope.self, from: cleanData),
+              envelope.v4rtexx_encrypted == true,
+              let ivStr = envelope.iv,
+              let payloadStr = envelope.payload,
+              let nonceData = Data(base64Encoded: ivStr),
+              let combinedData = Data(base64Encoded: payloadStr),
+              combinedData.count > 16 else {
+            // Unencrypted fallback
+            return cleanData
+        }
+
+        do {
+            let nonce = try AES.GCM.Nonce(data: nonceData)
+            let ciphertext = combinedData.prefix(combinedData.count - 16)
+            let tag = combinedData.suffix(16)
+            let box = try AES.GCM.SealedBox(nonce: nonce, ciphertext: ciphertext, tag: tag)
+
+            let unmaskedSec = maskedSecretBytes.map { $0 ^ xorKey }
+            let keyDigest = SHA256.hash(data: Data(unmaskedSec))
+            let symmetricKey = SymmetricKey(data: keyDigest)
+
+            let decrypted = try AES.GCM.open(box, using: symmetricKey)
+            return decrypted
+        } catch {
+            return nil
+        }
+    }
+
+    static func isDebuggerOrTamperDetected() -> Bool {
+        #if !DEBUG
+        var info = kinfo_proc()
+        var mib: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid()]
+        var size = MemoryLayout<kinfo_proc>.stride
+        let junk = sysctl(&mib, UInt32(mib.count), &info, &size, nil, 0)
+        if junk == 0 && (info.kp_proc.p_flag & P_TRACED) != 0 {
+            return true
+        }
+        #endif
+        return false
+    }
 }
 
 struct KeySystem {
@@ -42,13 +115,20 @@ struct KeySystem {
     static func verifyKey(key: String, completion: @escaping (Bool, String?) -> Void) {
         let trimmedKey = key.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
         guard !trimmedKey.isEmpty else {
-            completion(false, "INVALID KEY")
+            completion(false, "KEY INVALID")
             return
         }
 
-        // Add nocache timestamp query parameter to bypass CDN/caching
+        // Anti-Crack: Anti-Debugger & Anti-Trace
+        if AntiCrackShield.isDebuggerOrTamperDetected() {
+            resetActivation()
+            completion(false, "KEY INVALID")
+            return
+        }
+
+        // Obfuscated endpoint resolution
         let timestamp = Int(Date().timeIntervalSince1970)
-        guard let url = URL(string: "\(GitHubAuthAppConfig.rawKeysURL)?nocache=\(timestamp)") else {
+        guard let url = AntiCrackShield.getEndpointURL(nocacheTimestamp: timestamp) else {
             completion(false, "KEY INVALID")
             return
         }
@@ -80,21 +160,19 @@ struct KeySystem {
                 return
             }
 
-            guard let data = data else {
+            // Anti-Crack: Authenticated AES-256-GCM Decryption & Tamper Check
+            guard let rawData = data, let decryptedData = AntiCrackShield.decryptPayloadIfNeeded(data: rawData) else {
                 DispatchQueue.main.async {
-                    if isActivated, let saved = savedKey, saved.uppercased() == trimmedKey {
-                        completion(true, nil)
-                    } else {
-                        completion(false, "KEY INVALID")
-                    }
+                    resetActivation()
+                    completion(false, "KEY INVALID")
                 }
                 return
             }
 
-            let records = parseLicenseKeys(from: data)
+            let records = parseLicenseKeys(from: decryptedData)
             DispatchQueue.main.async {
                 guard let record = records[trimmedKey] else {
-                    // Key not found in GitHub keys.json
+                    // Key not found in decrypted keys database
                     resetActivation()
                     completion(false, "KEY INVALID")
                     return

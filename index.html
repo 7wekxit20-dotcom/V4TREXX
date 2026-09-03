@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -515,13 +515,16 @@
       <div class="brand">
         <div class="brand-icon">V4</div>
         <div class="brand-text">
-          <h1>V4RTEXX AUTH</h1>
-          <p>GitHub-Hosted License Key Manager</p>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <h1>V4RTEXX AUTH</h1>
+            <span style="font-size: 11px; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); padding: 4px 10px; border-radius: 8px; color: #10b981; font-weight: 700;">🛡️ ANTI-CRACK AES-256-GCM</span>
+          </div>
+          <p>Encrypted GitHub Authentication & License Manager</p>
         </div>
       </div>
       <div class="header-actions">
         <button class="btn" onclick="copyJsonToClipboard()">
-          📋 Copy JSON
+          📋 Copy Encrypted JSON
         </button>
         <button class="btn" onclick="downloadJsonFile()">
           💾 Download keys.json
@@ -660,6 +663,81 @@
     // Authentication Check
     const AUTH_USER = "MOU7I";
     const AUTH_PASS = "12";
+    const ENCRYPTION_SECRET = "V4RTEXX-AUTH-SHIELD-2026-X99-PROT";
+
+    async function getAESKey() {
+      const enc = new TextEncoder();
+      const keyDigest = await crypto.subtle.digest("SHA-256", enc.encode(ENCRYPTION_SECRET));
+      return crypto.subtle.importKey(
+        "raw",
+        keyDigest,
+        { name: "AES-GCM" },
+        false,
+        ["encrypt", "decrypt"]
+      );
+    }
+
+    async function encryptKeysDB(dataObj) {
+      const enc = new TextEncoder();
+      const plaintext = JSON.stringify(dataObj, null, 2);
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const key = await getAESKey();
+      
+      const encryptedBuf = await crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: iv },
+        key,
+        enc.encode(plaintext)
+      );
+
+      let binary = "";
+      const bytes = new Uint8Array(encryptedBuf);
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      const payloadB64 = btoa(binary);
+
+      let ivBinary = "";
+      for (let i = 0; i < iv.byteLength; i++) {
+        ivBinary += String.fromCharCode(iv[i]);
+      }
+      const ivB64 = btoa(ivBinary);
+
+      return {
+        v4rtexx_encrypted: true,
+        version: "2.0",
+        algorithm: "AES-256-GCM",
+        iv: ivB64,
+        payload: payloadB64
+      };
+    }
+
+    async function decryptKeysDB(rawJson) {
+      if (rawJson && rawJson.v4rtexx_encrypted === true && rawJson.iv && rawJson.payload) {
+        try {
+          const ivStr = atob(rawJson.iv);
+          const iv = new Uint8Array(ivStr.length);
+          for (let i = 0; i < ivStr.length; i++) iv[i] = ivStr.charCodeAt(i);
+
+          const payloadStr = atob(rawJson.payload);
+          const payload = new Uint8Array(payloadStr.length);
+          for (let i = 0; i < payloadStr.length; i++) payload[i] = payloadStr.charCodeAt(i);
+
+          const key = await getAESKey();
+          const decryptedBuf = await crypto.subtle.decrypt(
+            { name: "AES-GCM", iv: iv },
+            key,
+            payload
+          );
+
+          const dec = new TextDecoder();
+          return JSON.parse(dec.decode(decryptedBuf));
+        } catch (e) {
+          console.error("AES-256-GCM Decryption Error:", e);
+          throw new Error("Failed to decrypt license database! Check master secret.");
+        }
+      }
+      return rawJson;
+    }
 
     function checkAuth() {
       const isAuth = sessionStorage.getItem("v4rtexx_admin_auth") === "true";
@@ -714,11 +792,12 @@
       try {
         const resp = await fetch("keys.json?t=" + Date.now());
         if (resp.ok) {
-          const data = await resp.json();
-          keysDB = normalizeKeysData(data);
+          const raw = await resp.json();
+          const decrypted = await decryptKeysDB(raw);
+          keysDB = normalizeKeysData(decrypted);
         }
       } catch (e) {
-        console.log("Using default preloaded keys");
+        console.log("Using default preloaded keys:", e);
       }
       renderTable();
       updateStats();
@@ -939,15 +1018,17 @@
       });
     }
 
-    function copyJsonToClipboard() {
-      const jsonStr = JSON.stringify(keysDB, null, 2);
+    async function copyJsonToClipboard() {
+      const encrypted = await encryptKeysDB(keysDB);
+      const jsonStr = JSON.stringify(encrypted, null, 2);
       navigator.clipboard.writeText(jsonStr).then(() => {
-        showToast("Full keys.json copied to clipboard!");
+        showToast("🛡️ Encrypted AES-256-GCM payload copied!");
       });
     }
 
-    function downloadJsonFile() {
-      const jsonStr = JSON.stringify(keysDB, null, 2);
+    async function downloadJsonFile() {
+      const encrypted = await encryptKeysDB(keysDB);
+      const jsonStr = JSON.stringify(encrypted, null, 2);
       const blob = new Blob([jsonStr], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -957,22 +1038,23 @@
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      showToast("keys.json downloaded! Commit & push to your GitHub repo.");
+      showToast("💾 Encrypted keys.json downloaded! Ready for GitHub.");
     }
 
-    function handleFileLoad(event) {
+    async function handleFileLoad(event) {
       const file = event.target.files[0];
       if (!file) return;
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
           const parsed = JSON.parse(e.target.result);
-          keysDB = normalizeKeysData(parsed);
+          const decrypted = await decryptKeysDB(parsed);
+          keysDB = normalizeKeysData(decrypted);
           renderTable();
           updateStats();
-          showToast("Loaded keys successfully!");
+          showToast("Loaded & decrypted keys successfully!");
         } catch (err) {
-          alert("Invalid JSON file!");
+          alert("Error loading keys: " + err.message);
         }
       };
       reader.readAsText(file);
@@ -987,7 +1069,7 @@
       }, 3000);
     }
 
-    // Direct GitHub API integration
+    // Direct GitHub API integration with automatic AES-256-GCM encryption
     async function fetchFromGitHub() {
       const repo = document.getElementById("ghRepo").value.trim();
       const token = document.getElementById("ghToken").value.trim();
@@ -1001,10 +1083,12 @@
         if (!resp.ok) throw new Error("Could not fetch keys.json from repo (" + resp.status + ")");
         const data = await resp.json();
         const content = atob(data.content.replace(/\s/g, ''));
-        keysDB = normalizeKeysData(JSON.parse(content));
+        const rawJson = JSON.parse(content);
+        const decrypted = await decryptKeysDB(rawJson);
+        keysDB = normalizeKeysData(decrypted);
         renderTable();
         updateStats();
-        showToast("Fetched keys directly from GitHub!");
+        showToast("Fetched & decrypted keys directly from GitHub!");
       } catch (err) {
         alert("GitHub Fetch Error: " + err.message);
       }
@@ -1032,11 +1116,13 @@
           sha = fileData.sha;
         }
 
-        const jsonStr = JSON.stringify(keysDB, null, 2);
+        // Encrypt with Anti-Crack Shield before commit!
+        const encrypted = await encryptKeysDB(keysDB);
+        const jsonStr = JSON.stringify(encrypted, null, 2);
         const encodedContent = btoa(unescape(encodeURIComponent(jsonStr)));
 
         const putBody = {
-          message: "Update license keys database via V4RTEXX Auth Web Dashboard",
+          message: "Update license keys database (AES-256-GCM Anti-Crack Shield)",
           content: encodedContent,
           branch: "main"
         };
@@ -1053,7 +1139,7 @@
           throw new Error(errData.message || "Failed to commit");
         }
 
-        showToast("🚀 Successfully pushed keys.json to GitHub!");
+        showToast("🚀 Successfully encrypted & pushed keys.json to GitHub!");
       } catch (err) {
         alert("GitHub Push Error: " + err.message);
       }
