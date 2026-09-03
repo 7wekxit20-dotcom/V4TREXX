@@ -771,33 +771,42 @@
       location.reload();
     }
 
-    // In-memory key store
-    let keysDB = {
-      "V4RTEXX-ADMIN-LIFETIME": {
-        status: "active",
-        duration: "Lifetime",
-        expires_at: null,
-        created_at: new Date().toISOString(),
-        note: "Master Admin Key"
-      }
-    };
-
+    // In-memory key store (starts empty, populated from GitHub / localStorage)
+    let keysDB = {};
     let currentFilter = "all";
+
+    function saveLocalDB() {
+      try {
+        localStorage.setItem("v4rtexx_cached_keys", JSON.stringify(keysDB));
+      } catch (e) {}
+    }
 
     window.addEventListener("DOMContentLoaded", () => {
       checkAuth();
     });
 
     async function loadInitialData() {
+      // 1. Try loading cached database from localStorage
+      try {
+        const cached = localStorage.getItem("v4rtexx_cached_keys");
+        if (cached) {
+          keysDB = JSON.parse(cached);
+          renderTable();
+          updateStats();
+        }
+      } catch (e) {}
+
+      // 2. Fetch latest encrypted keys from GitHub repository
       try {
         const resp = await fetch("keys.json?t=" + Date.now());
         if (resp.ok) {
           const raw = await resp.json();
           const decrypted = await decryptKeysDB(raw);
           keysDB = normalizeKeysData(decrypted);
+          saveLocalDB();
         }
       } catch (e) {
-        console.log("Using default preloaded keys:", e);
+        console.log("Could not fetch remote keys.json:", e);
       }
       renderTable();
       updateStats();
@@ -879,9 +888,10 @@
         generated.push(key);
       }
 
+      saveLocalDB();
       renderTable();
       updateStats();
-      showToast(`Generated ${qty} key(s)! Remember to download keys.json`);
+      showToast(`Generated ${qty} key(s)! Remember to download or push keys.json`);
     }
 
     function getKeyStatus(keyObj) {
@@ -998,6 +1008,7 @@
           keysDB[key].status = "revoked";
           showToast(`Key ${key} revoked.`);
         }
+        saveLocalDB();
         renderTable();
         updateStats();
       }
@@ -1006,9 +1017,10 @@
     function deleteKey(key) {
       if (confirm(`Delete key ${key}?`)) {
         delete keysDB[key];
+        saveLocalDB();
         renderTable();
         updateStats();
-        showToast("Key deleted.");
+        showToast("Key deleted! Click 'Encrypt & Push' or 'Download keys.json' to sync to GitHub.");
       }
     }
 
