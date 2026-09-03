@@ -129,10 +129,6 @@ struct KeySystem {
         task.resume()
     }
 
-    /// Backward compatibility alias for views that previously called verifyKeyAuth
-    static func verifyKeyAuth(key: String, completion: @escaping (Bool, String?) -> Void) {
-        verifyKey(key: key, completion: completion)
-    }
 
     static func reverifySavedLicense(completion: @escaping (Bool) -> Void) {
         guard isActivated, let saved = savedKey, !saved.isEmpty else {

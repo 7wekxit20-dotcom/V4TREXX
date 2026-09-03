@@ -294,7 +294,7 @@ struct InjectView: View {
         }
 
         isProcessing = true
-        KeySystem.verifyKeyAuth(key: savedKey) { success, errMsg in
+        KeySystem.verifyKey(key: savedKey) { success, errMsg in
             guard success else {
                 DispatchQueue.main.async {
                     self.isProcessing = false
