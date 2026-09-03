@@ -148,6 +148,10 @@ struct KeySystem {
     }
 
     private static func parseLicenseKeys(from data: Data) -> [String: LicenseKeyRecord] {
+        var cleanData = data
+        if cleanData.count >= 3 && cleanData[0] == 0xEF && cleanData[1] == 0xBB && cleanData[2] == 0xBF {
+            cleanData = cleanData.subdata(in: 3..<cleanData.count)
+        }
         var result: [String: LicenseKeyRecord] = [:]
 
         // Helper for ISO8601 parsing
