@@ -1,29 +1,24 @@
 import Foundation
 import UIKit
 
-struct KeyAuthAppConfig {
-    static let name = "V4RTEXX MANAGER"
-    static let ownerid = "pg6gDhL4a6"
-    static let secret = "1b6ae657e002b641129763f65920347345c9224bfdd1f514e7f8aa262886b03f"
-    static let version = "1.0"
-    static let apiUrl = "https://keyauth.win/api/1.2/"
+struct GitHubAuthAppConfig {
+    static let rawKeysURL = "https://raw.githubusercontent.com/7wekxit20-dotcom/V4TREXX/main/keys.json"
+    static let fallbackKeysURL = "https://raw.githubusercontent.com/7wekxit20-dotcom/V4TREXX/main/keys_db.json"
 }
 
-private struct KeyAuthInitResponse: Decodable {
-    let success: Bool
-    let message: String?
-    let sessionid: String?
-}
-
-private struct KeyAuthLicenseResponse: Decodable {
-    let success: Bool
-    let message: String?
+struct LicenseKeyRecord {
+    let key: String
+    let status: String
+    let expiresAt: Date?
+    let duration: String?
+    let note: String?
 }
 
 struct KeySystem {
     static let storageKey = "v4rtexx.key_activated"
     static let savedKeyStorageKey = "v4rtexx.saved_key"
     static let deviceUUIDStorageKey = "v4rtexx.device_uuid"
+    static let keyExpiresAtStorageKey = "v4rtexx.key_expires_at"
 
     static var isActivated: Bool {
         UserDefaults.standard.bool(forKey: storageKey)
@@ -44,94 +39,96 @@ struct KeySystem {
         return finalHWID
     }
 
-    static func verifyKeyAuth(key: String, completion: @escaping (Bool, String?) -> Void) {
-        let trimmedKey = key.trimmingCharacters(in: .whitespacesAndNewlines)
+    static func verifyKey(key: String, completion: @escaping (Bool, String?) -> Void) {
+        let trimmedKey = key.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
         guard !trimmedKey.isEmpty else {
             completion(false, "INVALID KEY")
             return
         }
 
-        // 1. Initialize KeyAuth session
-        var initComponents = URLComponents(string: KeyAuthAppConfig.apiUrl)!
-        initComponents.queryItems = [
-            URLQueryItem(name: "type", value: "init"),
-            URLQueryItem(name: "name", value: KeyAuthAppConfig.name),
-            URLQueryItem(name: "ownerid", value: KeyAuthAppConfig.ownerid),
-            URLQueryItem(name: "secret", value: KeyAuthAppConfig.secret),
-            URLQueryItem(name: "version", value: KeyAuthAppConfig.version)
-        ]
-
-        guard let initURL = initComponents.url else {
+        // Add nocache timestamp query parameter to bypass CDN/caching
+        let timestamp = Int(Date().timeIntervalSince1970)
+        guard let url = URL(string: "\(GitHubAuthAppConfig.rawKeysURL)?nocache=\(timestamp)") else {
             completion(false, "INVALID KEY")
             return
         }
 
-        let initTask = URLSession.shared.dataTask(with: initURL) { initData, _, _ in
-            guard let initData = initData,
-                  let initResponse = try? JSONDecoder().decode(KeyAuthInitResponse.self, from: initData),
-                  initResponse.success,
-                  let sessionID = initResponse.sessionid else {
-                DispatchQueue.main.async {
-                    // If network fails offline, allow existing saved key session
-                    if isActivated && savedKey == trimmedKey {
-                        completion(true, nil)
-                    } else {
-                        completion(false, "INVALID KEY")
-                    }
-                }
-                return
-            }
+        var request = URLRequest(url: url)
+        request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+        request.timeoutInterval = 10.0
 
-            // 2. Validate License Key with KeyAuth session
-            var licenseComponents = URLComponents(string: KeyAuthAppConfig.apiUrl)!
-            licenseComponents.queryItems = [
-                URLQueryItem(name: "type", value: "license"),
-                URLQueryItem(name: "key", value: trimmedKey),
-                URLQueryItem(name: "hwid", value: deviceUUID),
-                URLQueryItem(name: "sessionid", value: sessionID),
-                URLQueryItem(name: "name", value: KeyAuthAppConfig.name),
-                URLQueryItem(name: "ownerid", value: KeyAuthAppConfig.ownerid)
-            ]
-
-            guard let licenseURL = licenseComponents.url else {
+        let task = URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
                 DispatchQueue.main.async {
-                    if isActivated && savedKey == trimmedKey {
-                        completion(true, nil)
-                    } else {
-                        completion(false, "INVALID KEY")
-                    }
-                }
-                return
-            }
-
-            let licenseTask = URLSession.shared.dataTask(with: licenseURL) { licData, _, _ in
-                DispatchQueue.main.async {
-                    guard let licData = licData,
-                          let licResponse = try? JSONDecoder().decode(KeyAuthLicenseResponse.self, from: licData) else {
-                        if isActivated && savedKey == trimmedKey {
-                            completion(true, nil)
-                        } else {
-                            completion(false, "INVALID KEY")
+                    // If offline or network error, allow existing active valid session
+                    if isActivated, let saved = savedKey, saved.uppercased() == trimmedKey {
+                        if let localExp = UserDefaults.standard.object(forKey: keyExpiresAtStorageKey) as? Date {
+                            if Date() > localExp {
+                                resetActivation()
+                                completion(false, "KEY EXPIRED")
+                                return
+                            }
                         }
+                        completion(true, nil)
+                    } else {
+                        completion(false, "NETWORK ERROR: \(error.localizedDescription)")
+                    }
+                }
+                return
+            }
+
+            guard let data = data else {
+                DispatchQueue.main.async {
+                    if isActivated, let saved = savedKey, saved.uppercased() == trimmedKey {
+                        completion(true, nil)
+                    } else {
+                        completion(false, "INVALID KEY")
+                    }
+                }
+                return
+            }
+
+            let records = parseLicenseKeys(from: data)
+            DispatchQueue.main.async {
+                guard let record = records[trimmedKey] else {
+                    // Key not found in GitHub keys.json
+                    resetActivation()
+                    completion(false, "INVALID KEY")
+                    return
+                }
+
+                // Check status
+                if record.status.lowercased() != "active" {
+                    resetActivation()
+                    let msg = record.status.lowercased() == "expired" ? "KEY EXPIRED" : "KEY REVOKED"
+                    completion(false, msg)
+                    return
+                }
+
+                // Check expiration
+                if let expiry = record.expiresAt {
+                    if Date() > expiry {
+                        resetActivation()
+                        completion(false, "KEY EXPIRED")
                         return
                     }
-
-                    if licResponse.success {
-                        // Key is valid on KeyAuth server! Save state.
-                        UserDefaults.standard.set(true, forKey: storageKey)
-                        UserDefaults.standard.set(trimmedKey, forKey: savedKeyStorageKey)
-                        completion(true, nil)
-                    } else {
-                        // Key explicitly expired or invalid on KeyAuth server! Auto Log Out.
-                        resetActivation()
-                        let errMsg = licResponse.message?.uppercased() ?? "INVALID KEY"
-                        completion(false, errMsg.contains("KEY") ? errMsg : "INVALID KEY")
-                    }
+                    UserDefaults.standard.set(expiry, forKey: keyExpiresAtStorageKey)
+                } else {
+                    UserDefaults.standard.removeObject(forKey: keyExpiresAtStorageKey)
                 }
+
+                // Key is valid! Save activation
+                UserDefaults.standard.set(true, forKey: storageKey)
+                UserDefaults.standard.set(trimmedKey, forKey: savedKeyStorageKey)
+                completion(true, nil)
             }
-            licenseTask.resume()
         }
-        initTask.resume()
+        task.resume()
+    }
+
+    /// Backward compatibility alias for views that previously called verifyKeyAuth
+    static func verifyKeyAuth(key: String, completion: @escaping (Bool, String?) -> Void) {
+        verifyKey(key: key, completion: completion)
     }
 
     static func reverifySavedLicense(completion: @escaping (Bool) -> Void) {
@@ -139,7 +136,7 @@ struct KeySystem {
             completion(false)
             return
         }
-        verifyKeyAuth(key: saved) { success, _ in
+        verifyKey(key: saved) { success, _ in
             completion(success)
         }
     }
@@ -147,5 +144,62 @@ struct KeySystem {
     static func resetActivation() {
         UserDefaults.standard.set(false, forKey: storageKey)
         UserDefaults.standard.removeObject(forKey: savedKeyStorageKey)
+        UserDefaults.standard.removeObject(forKey: keyExpiresAtStorageKey)
+    }
+
+    private static func parseLicenseKeys(from data: Data) -> [String: LicenseKeyRecord] {
+        var result: [String: LicenseKeyRecord] = [:]
+
+        // Helper for ISO8601 parsing
+        let isoFormatter = ISO8601DateFormatter()
+        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let standardIso = ISO8601DateFormatter()
+
+        let parseDate: (Any?) -> Date? = { val in
+            if let str = val as? String {
+                return isoFormatter.date(from: str) ?? standardIso.date(from: str)
+            } else if let num = val as? Double {
+                return Date(timeIntervalSince1970: num)
+            }
+            return nil
+        }
+
+        // Format 1: Dictionary (top-level or nested under "keys")
+        if let jsonObject = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] {
+            let dict = (jsonObject["keys"] as? [String: Any]) ?? jsonObject
+            for (k, val) in dict {
+                let upperKey = k.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+                guard upperKey != "UPDATED_AT" && upperKey != "VERSION" else { continue }
+
+                if let info = val as? [String: Any] {
+                    let status = (info["status"] as? String)?.lowercased() ?? "active"
+                    let duration = info["duration"] as? String
+                    let expDate = parseDate(info["expires_at"])
+                    let note = info["note"] as? String
+                    result[upperKey] = LicenseKeyRecord(key: upperKey, status: status, expiresAt: expDate, duration: duration, note: note)
+                } else if let str = val as? String {
+                    result[upperKey] = LicenseKeyRecord(key: upperKey, status: str.lowercased(), expiresAt: nil, duration: "Lifetime", note: nil)
+                }
+            }
+        }
+
+        // Format 2: Array of objects or strings
+        if result.isEmpty, let jsonArray = (try? JSONSerialization.jsonObject(with: data)) as? [Any] {
+            for item in jsonArray {
+                if let dict = item as? [String: Any], let key = dict["key"] as? String {
+                    let upperKey = key.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+                    let status = (dict["status"] as? String)?.lowercased() ?? "active"
+                    let duration = dict["duration"] as? String
+                    let expDate = parseDate(dict["expires_at"])
+                    let note = dict["note"] as? String
+                    result[upperKey] = LicenseKeyRecord(key: upperKey, status: status, expiresAt: expDate, duration: duration, note: note)
+                } else if let keyStr = item as? String {
+                    let upperKey = keyStr.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+                    result[upperKey] = LicenseKeyRecord(key: upperKey, status: "active", expiresAt: nil, duration: "Lifetime", note: nil)
+                }
+            }
+        }
+
+        return result
     }
 }

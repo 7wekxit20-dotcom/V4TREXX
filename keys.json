@@ -1,0 +1,23 @@
+﻿{
+  "V4RTEXX-ADMIN-LIFETIME": {
+    "status": "active",
+    "duration": "Lifetime",
+    "expires_at": null,
+    "created_at": "2026-09-03T00:00:00Z",
+    "note": "Master Admin Key"
+  },
+  "3G7L97FH4TVXYBVBLDD": {
+    "status": "active",
+    "duration": "Lifetime",
+    "expires_at": null,
+    "created_at": "2026-09-03T00:00:00Z",
+    "note": "Migrated User Key"
+  },
+  "BG8B8K5BHDVLLB88OWJ": {
+    "status": "active",
+    "duration": "Lifetime",
+    "expires_at": null,
+    "created_at": "2026-09-03T00:00:00Z",
+    "note": "Migrated User Key"
+  }
+}
